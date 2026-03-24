@@ -7,7 +7,8 @@ export type Tool =
   | "line"
   | "arrow"
   | "freehand"
-  | "text";
+  | "text"
+  | "mermaid";
 
 export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none";
 export type StrokeStyle = "solid" | "dashed" | "dotted";
@@ -53,7 +54,30 @@ export interface TextElement extends DrawElementBase {
   fontFamily: string;
 }
 
-export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement;
+export interface MermaidNode {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  shape: "rect" | "diamond" | "circle" | "stadium" | "hexagon";
+}
+
+export interface MermaidEdge {
+  points: [number, number][];
+  label?: string;
+}
+
+export interface MermaidElement extends DrawElementBase {
+  type: "mermaid";
+  code: string;
+  renderedNodes: MermaidNode[];
+  renderedEdges: MermaidEdge[];
+  originalWidth: number;
+  originalHeight: number;
+}
+
+export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | MermaidElement;
 
 export interface ViewTransform {
   x: number;
@@ -83,6 +107,7 @@ export interface AppState {
   clipboard: DrawElement[];
   filePath: string | null;
   showTextInput: { x: number; y: number; screenX: number; screenY: number } | null;
+  showMermaidInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
 }
 
 export interface AppActions {
@@ -117,6 +142,7 @@ export interface AppActions {
   setOpacity: (opacity: number) => void;
   setFontSize: (size: number) => void;
   setShowTextInput: (pos: { x: number; y: number; screenX: number; screenY: number } | null) => void;
+  setShowMermaidInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setIsDrawing: (drawing: boolean) => void;
   setIsPanning: (panning: boolean) => void;
   setPanStart: (start: { x: number; y: number } | null) => void;

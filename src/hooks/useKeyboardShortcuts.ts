@@ -76,6 +76,8 @@ export function useKeyboardShortcuts() {
         setTool("text");
       } else if (e.key === "h" || e.key === "H") {
         setTool("hand");
+      } else if (e.key === "m" || e.key === "M") {
+        setTool("mermaid");
       } else if (e.key === "[" || e.key === "{") {
         sendToBack();
       } else if (e.key === "]" || e.key === "}") {

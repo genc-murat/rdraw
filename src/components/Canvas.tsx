@@ -2,8 +2,11 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import useAppStore from "../store/useAppStore";
 import { useCanvasEvents } from "../hooks/useCanvasEvents";
 import { renderElements, renderSelectionBox } from "../utils/rendering";
-import { measureText } from "../utils/geometry";
+import { measureText, pointInElement } from "../utils/geometry";
+import { parseMermaidCode, renderMermaidDiagram } from "../utils/mermaid";
 import { DEFAULT_FONT_FAMILY } from "../utils/constants";
+import { generateId, generateSeed } from "../utils/ids";
+import type { MermaidElement } from "../types";
 import ZoomControls from "./ZoomControls";
 import Minimap from "./Minimap";
 
@@ -16,7 +19,9 @@ export default function Canvas() {
   const activeTool = useAppStore((s) => s.activeTool);
   const isDrawing = useAppStore((s) => s.isDrawing);
   const showTextInput = useAppStore((s) => s.showTextInput);
+  const showMermaidInput = useAppStore((s) => s.showMermaidInput);
   const setShowTextInput = useAppStore((s) => s.setShowTextInput);
+  const setShowMermaidInput = useAppStore((s) => s.setShowMermaidInput);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   const { tempElementRef, selectionBoxRef } = useCanvasEvents(canvasRef);
@@ -87,6 +92,7 @@ export default function Canvas() {
       arrow: "crosshair",
       freehand: "crosshair",
       text: "text",
+      mermaid: "crosshair",
     };
 
     canvas.style.cursor = cursors[activeTool] || "default";
@@ -142,12 +148,90 @@ export default function Canvas() {
     setShowTextInput(null);
   };
 
+  const handleMermaidInputSubmit = async (code: string, editId?: string) => {
+    if (!showMermaidInput || !code.trim()) {
+      setShowMermaidInput(null);
+      return;
+    }
+
+    const isValid = await parseMermaidCode(code);
+    if (!isValid) {
+      alert("Geçersiz Mermaid kodu. Lütfen flowchart syntax'ını kontrol edin.");
+      return;
+    }
+
+    try {
+      const result = await renderMermaidDiagram(code);
+      const state = useAppStore.getState();
+
+      const el: MermaidElement = {
+        id: editId || generateId(),
+        type: "mermaid",
+        x: showMermaidInput.x,
+        y: showMermaidInput.y,
+        width: result.width,
+        height: result.height,
+        strokeColor: state.strokeColor,
+        fillColor: state.fillColor,
+        fillStyle: state.fillStyle,
+        strokeStyle: state.strokeStyle,
+        strokeWidth: state.strokeWidth,
+        roughness: state.roughness,
+        opacity: state.opacity,
+        rotation: 0,
+        seed: generateSeed(),
+        code,
+        renderedNodes: result.nodes,
+        renderedEdges: result.edges,
+        originalWidth: result.width,
+        originalHeight: result.height,
+      };
+
+      state.pushHistory();
+      if (editId) {
+        state.updateElement(editId, el as any);
+      } else {
+        state.addElement(el);
+      }
+      setShowMermaidInput(null);
+    } catch (err) {
+      alert("Mermaid render hatası: " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleCanvasDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const state = useAppStore.getState();
+      const x = (e.clientX - rect.left - state.viewTransform.x) / state.viewTransform.zoom;
+      const y = (e.clientY - rect.top - state.viewTransform.y) / state.viewTransform.zoom;
+
+      for (const el of [...state.elements].reverse()) {
+        if (el.type === "mermaid" && pointInElement(x, y, el)) {
+          const mermaidEl = el as MermaidElement;
+          state.setShowMermaidInput({
+            x: mermaidEl.x,
+            y: mermaidEl.y,
+            screenX: e.clientX,
+            screenY: e.clientY,
+            editId: mermaidEl.id,
+          });
+          return;
+        }
+      }
+    },
+    []
+  );
+
   return (
     <div
       ref={containerRef}
       className="canvas-wrapper"
       onMouseMove={handleMouseMoveForReadout}
       onMouseLeave={() => setCursorPos(null)}
+      onDoubleClick={handleCanvasDoubleClick}
     >
       <canvas ref={canvasRef} />
       {showTextInput && (
@@ -156,6 +240,21 @@ export default function Canvas() {
           y={showTextInput.screenY}
           onSubmit={handleTextInputSubmit}
           onCancel={() => setShowTextInput(null)}
+        />
+      )}
+      {showMermaidInput && (
+        <MermaidInputOverlay
+          x={showMermaidInput.screenX}
+          y={showMermaidInput.screenY}
+          initialCode={
+            showMermaidInput.editId
+              ? (useAppStore.getState().elements.find(
+                  (e) => e.id === showMermaidInput!.editId
+                ) as MermaidElement | undefined)?.code || ""
+              : ""
+          }
+          onSubmit={(code) => handleMermaidInputSubmit(code, showMermaidInput.editId)}
+          onCancel={() => setShowMermaidInput(null)}
         />
       )}
 
@@ -222,5 +321,64 @@ function TextInputOverlay({
         }
       }}
     />
+  );
+}
+
+function MermaidInputOverlay({
+  x,
+  y,
+  initialCode,
+  onSubmit,
+  onCancel,
+}: {
+  x: number;
+  y: number;
+  initialCode: string;
+  onSubmit: (code: string) => void;
+  onCancel: () => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      ref.current?.focus();
+    });
+  }, []);
+
+  return (
+    <div className="mermaid-input-overlay" style={{ left: x, top: y }}>
+      <div className="mermaid-input-header">Mermaid Flowchart</div>
+      <textarea
+        ref={ref}
+        className="mermaid-input-textarea"
+        defaultValue={initialCode || "flowchart TD\n    A[Start] --> B[End]"}
+        placeholder="flowchart TD&#10;    A[Start] --> B[End]"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onCancel();
+          }
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            onSubmit(ref.current?.value || "");
+          }
+        }}
+      />
+      <div className="mermaid-input-footer">
+        <button
+          className="mermaid-input-btn"
+          onClick={() => onSubmit(ref.current?.value || "")}
+        >
+          Render
+        </button>
+        <button
+          className="mermaid-input-btn mermaid-input-btn-cancel"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+        <span className="mermaid-input-hint">Ctrl+Enter to render</span>
+      </div>
+    </div>
   );
 }

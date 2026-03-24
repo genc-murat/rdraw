@@ -119,6 +119,20 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         return;
       }
 
+      if (state.activeTool === "mermaid") {
+        e.preventDefault();
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+          state.setShowMermaidInput({
+            x: point.x,
+            y: point.y,
+            screenX: point.x * state.viewTransform.zoom + state.viewTransform.x + rect.left,
+            screenY: point.y * state.viewTransform.zoom + state.viewTransform.y + rect.top,
+          });
+        }
+        return;
+      }
+
       state.pushHistory();
       state.setIsDrawing(true);
       state.setDrawStart({ x: point.x, y: point.y });

@@ -11,6 +11,7 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: "arrow", label: "Arrow (A)", icon: "→" },
   { id: "freehand", label: "Freehand (P)", icon: "✎" },
   { id: "text", label: "Text (T)", icon: "T" },
+  { id: "mermaid", label: "Mermaid (M)", icon: "⌥" },
 ];
 
 export default function Toolbar() {

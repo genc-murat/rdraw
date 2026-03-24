@@ -36,6 +36,7 @@ const useAppStore = create<Store>((set, get) => ({
   clipboard: [],
   filePath: null,
   showTextInput: null,
+  showMermaidInput: null,
 
   setTool: (tool) => set({ activeTool: tool, selectedIds: [] }),
 
@@ -273,6 +274,7 @@ const useAppStore = create<Store>((set, get) => ({
   },
 
   setShowTextInput: (pos) => set({ showTextInput: pos }),
+  setShowMermaidInput: (pos) => set({ showMermaidInput: pos }),
   setIsDrawing: (drawing) => set({ isDrawing: drawing }),
   setIsPanning: (panning) => set({ isPanning: panning }),
   setPanStart: (start) => set({ panStart: start }),

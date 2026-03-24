@@ -1,6 +1,6 @@
 import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement } from "../types";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, MermaidElement } from "../types";
 import { getElementBounds } from "./geometry";
 
 const CULL_PADDING = 50;
@@ -72,6 +72,8 @@ export function renderElements(
       renderFreehand(ctx, el as FreehandElement);
     } else if (el.type === "text") {
       renderText(ctx, el as TextElement);
+    } else if (el.type === "mermaid") {
+      renderMermaid(ctx, rc, el as MermaidElement);
     }
 
     ctx.restore();
@@ -259,6 +261,112 @@ function renderText(ctx: CanvasRenderingContext2D, el: TextElement): void {
     ctx.fillText(lines[i], el.x, el.y + i * el.fontSize * 1.3);
   }
   ctx.restore();
+}
+
+function renderMermaid(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: MermaidElement
+): void {
+  const origW = el.originalWidth || el.width;
+  const origH = el.originalHeight || el.height;
+  const sx = origW > 0 ? el.width / origW : 1;
+  const sy = origH > 0 ? el.height / origH : 1;
+
+  const options = {
+    seed: el.seed,
+    stroke: el.strokeColor,
+    strokeWidth: el.strokeWidth,
+    roughness: el.roughness,
+    fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+    fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle as any,
+    bowing: el.roughness * 0.5,
+  };
+
+  for (const edge of el.renderedEdges) {
+    if (edge.points.length < 2) continue;
+
+    const absPoints = edge.points.map(([px, py]) => [
+      el.x + px * sx,
+      el.y + py * sy,
+    ] as [number, number]);
+
+    for (let i = 0; i < absPoints.length - 1; i++) {
+      rc.line(absPoints[i][0], absPoints[i][1], absPoints[i + 1][0], absPoints[i + 1][1], {
+        seed: el.seed + i,
+        stroke: el.strokeColor,
+        strokeWidth: el.strokeWidth,
+        roughness: el.roughness,
+      });
+    }
+
+    if (edge.label) {
+      const midIdx = Math.floor(absPoints.length / 2);
+      const [mx, my] = absPoints[midIdx];
+      ctx.save();
+      ctx.fillStyle = el.strokeColor;
+      ctx.font = `${Math.max(8, 12 * Math.min(sx, sy))}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(edge.label, mx, my - 8 * Math.min(sx, sy));
+      ctx.restore();
+    }
+  }
+
+  for (const node of el.renderedNodes) {
+    const nx = el.x + node.x * sx;
+    const ny = el.y + node.y * sy;
+    const nw = node.width * sx;
+    const nh = node.height * sy;
+
+    if (node.shape === "diamond") {
+      const cx = nx + nw / 2;
+      const cy = ny + nh / 2;
+      const hw = nw / 2;
+      const hh = nh / 2;
+      rc.polygon(
+        [
+          [cx, cy - hh],
+          [cx + hw, cy],
+          [cx, cy + hh],
+          [cx - hw, cy],
+        ],
+        options
+      );
+    } else if (node.shape === "circle") {
+      rc.ellipse(
+        nx + nw / 2,
+        ny + nh / 2,
+        nw,
+        nh,
+        options
+      );
+    } else {
+      rc.rectangle(nx, ny, nw, nh, {
+        ...options,
+        seed: el.seed + node.x + node.y,
+      });
+    }
+
+    if (node.label) {
+      ctx.save();
+      ctx.fillStyle = el.strokeColor;
+      const fontSize = Math.max(8, 14 * Math.min(sx, sy));
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const lines = node.label.split("\n");
+      const lineHeight = fontSize * 1.15;
+      const totalHeight = lines.length * lineHeight;
+      const startY = ny + nh / 2 - totalHeight / 2 + lineHeight / 2;
+
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], nx + nw / 2, startY + i * lineHeight);
+      }
+      ctx.restore();
+    }
+  }
 }
 
 function drawSelectionHandles(

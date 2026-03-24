@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
-import type { DrawElement } from "../types";
+import type { DrawElement, MermaidElement } from "../types";
 
 export interface DrawingData {
   version: number;
@@ -88,6 +88,49 @@ function generateSVG(elements: DrawElement[]): string {
       }
     } else if (el.type === "text") {
       svg += `<text x="${el.x}" y="${el.y + (el as any).fontSize}" fill="${el.strokeColor}" font-size="${(el as any).fontSize}px">${(el as any).text}</text>`;
+    } else if (el.type === "mermaid") {
+      const mEl = el as MermaidElement;
+      const origW = mEl.originalWidth || mEl.width;
+      const origH = mEl.originalHeight || mEl.height;
+      const sx = origW > 0 ? mEl.width / origW : 1;
+      const sy = origH > 0 ? mEl.height / origH : 1;
+      const style = `stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" fill="${el.fillColor === "transparent" ? "none" : el.fillColor}" opacity="${el.opacity}"`;
+
+      for (const edge of mEl.renderedEdges) {
+        if (edge.points.length >= 2) {
+          for (let i = 0; i < edge.points.length - 1; i++) {
+            const [x1, y1] = edge.points[i];
+            const [x2, y2] = edge.points[i + 1];
+            svg += `<line x1="${el.x + x1 * sx}" y1="${el.y + y1 * sy}" x2="${el.x + x2 * sx}" y2="${el.y + y2 * sy}" ${style} />`;
+          }
+          if (edge.label) {
+            const midIdx = Math.floor(edge.points.length / 2);
+            const [mx, my] = edge.points[midIdx];
+            svg += `<text x="${el.x + mx * sx}" y="${el.y + my * sy - 8}" fill="${el.strokeColor}" font-size="12px" text-anchor="middle">${edge.label}</text>`;
+          }
+        }
+      }
+
+      for (const node of mEl.renderedNodes) {
+        const nx = el.x + node.x * sx;
+        const ny = el.y + node.y * sy;
+        const nw = node.width * sx;
+        const nh = node.height * sy;
+
+        if (node.shape === "diamond") {
+          const cx = nx + nw / 2;
+          const cy = ny + nh / 2;
+          svg += `<polygon points="${cx},${ny} ${nx + nw},${cy} ${cx},${ny + nh} ${nx},${cy}" ${style} />`;
+        } else if (node.shape === "circle") {
+          svg += `<ellipse cx="${nx + nw / 2}" cy="${ny + nh / 2}" rx="${nw / 2}" ry="${nh / 2}" ${style} />`;
+        } else {
+          svg += `<rect x="${nx}" y="${ny}" width="${nw}" height="${nh}" ${style} />`;
+        }
+
+        if (node.label) {
+          svg += `<text x="${nx + nw / 2}" y="${ny + nh / 2}" fill="${el.strokeColor}" font-size="14px" text-anchor="middle" dominant-baseline="middle">${node.label}</text>`;
+        }
+      }
     }
   }
 
