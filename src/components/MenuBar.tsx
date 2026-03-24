@@ -12,8 +12,10 @@ interface MenuDef {
 }
 
 export default function MenuBar() {
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const menuBarRef = useRef<HTMLDivElement>(null);
 
   const elements = useAppStore((s) => s.elements);
   const setElements = useAppStore((s) => s.setElements);
@@ -33,22 +35,33 @@ export default function MenuBar() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenu(null);
+      if (
+        sidebarOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target as Node) &&
+        menuBarRef.current &&
+        !menuBarRef.current.contains(e.target as Node)
+      ) {
+        setSidebarOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [sidebarOpen]);
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    setExpandedCategory(null);
+  };
 
   const handleNew = () => {
     clearAll();
     setFilePath(null);
-    setOpenMenu(null);
+    closeSidebar();
   };
 
   const handleOpen = async () => {
-    setOpenMenu(null);
+    closeSidebar();
     const result = await loadDrawing();
     if (result) {
       setElements(result.elements);
@@ -57,25 +70,25 @@ export default function MenuBar() {
   };
 
   const handleSave = async () => {
-    setOpenMenu(null);
+    closeSidebar();
     const path = await saveDrawing(elements, filePath);
     if (path) setFilePath(path);
   };
 
   const handleSaveAs = async () => {
-    setOpenMenu(null);
+    closeSidebar();
     const path = await saveDrawing(elements);
     if (path) setFilePath(path);
   };
 
   const handleExportPNG = async () => {
-    setOpenMenu(null);
+    closeSidebar();
     const canvas = document.querySelector("canvas") as HTMLCanvasElement;
     if (canvas) await exportPNG(canvas);
   };
 
   const handleExportSVG = async () => {
-    setOpenMenu(null);
+    closeSidebar();
     const state = useAppStore.getState();
     await exportSVG(elements, state.viewTransform);
   };
@@ -96,71 +109,110 @@ export default function MenuBar() {
     {
       label: "Edit",
       items: [
-        { label: "Undo", shortcut: "Ctrl+Z", action: () => { undo(); setOpenMenu(null); } },
-        { label: "Redo", shortcut: "Ctrl+Shift+Z", action: () => { redo(); setOpenMenu(null); } },
+        { label: "Undo", shortcut: "Ctrl+Z", action: () => { undo(); closeSidebar(); } },
+        { label: "Redo", shortcut: "Ctrl+Shift+Z", action: () => { redo(); closeSidebar(); } },
         { separator: true },
-        { label: "Cut", shortcut: "Ctrl+X", action: () => { cut(); setOpenMenu(null); } },
-        { label: "Copy", shortcut: "Ctrl+C", action: () => { copy(); setOpenMenu(null); } },
-        { label: "Paste", shortcut: "Ctrl+V", action: () => { paste(); setOpenMenu(null); } },
-        { label: "Duplicate", shortcut: "Ctrl+D", action: () => { duplicate(); setOpenMenu(null); } },
+        { label: "Cut", shortcut: "Ctrl+X", action: () => { cut(); closeSidebar(); } },
+        { label: "Copy", shortcut: "Ctrl+C", action: () => { copy(); closeSidebar(); } },
+        { label: "Paste", shortcut: "Ctrl+V", action: () => { paste(); closeSidebar(); } },
+        { label: "Duplicate", shortcut: "Ctrl+D", action: () => { duplicate(); closeSidebar(); } },
         { separator: true },
-        { label: "Select All", shortcut: "Ctrl+A", action: () => { selectAll(); setOpenMenu(null); } },
+        { label: "Select All", shortcut: "Ctrl+A", action: () => { selectAll(); closeSidebar(); } },
       ],
     },
     {
       label: "View",
       items: [
-        { label: "Reset View", shortcut: "", action: () => { resetView(); setOpenMenu(null); } },
+        { label: "Reset View", shortcut: "", action: () => { resetView(); closeSidebar(); } },
       ],
     },
     {
       label: "Arrange",
       items: [
-        { label: "Bring to Front", shortcut: "]", action: () => { bringToFront(); setOpenMenu(null); } },
-        { label: "Send to Back", shortcut: "[", action: () => { sendToBack(); setOpenMenu(null); } },
+        { label: "Bring to Front", shortcut: "]", action: () => { bringToFront(); closeSidebar(); } },
+        { label: "Send to Back", shortcut: "[", action: () => { sendToBack(); closeSidebar(); } },
       ],
     },
   ];
 
+  const toggleCategory = (label: string) => {
+    setExpandedCategory(expandedCategory === label ? null : label);
+  };
+
   return (
-    <div className="menu-bar" ref={menuRef}>
-      {menus.map((menu) => (
-        <div
-          key={menu.label}
-          className="menu-item"
-          onClick={() => setOpenMenu(openMenu === menu.label ? null : menu.label)}
+    <>
+      <div className="menu-bar" ref={menuBarRef}>
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Menu"
         >
-          {menu.label}
-          {openMenu === menu.label && (
-            <div className="menu-dropdown">
-              {menu.items.map((item, i) =>
-                item.separator ? (
-                  <div key={i} className="menu-separator" />
-                ) : (
-                  <div
-                    key={i}
-                    className="menu-dropdown-item"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      item.action();
-                    }}
-                  >
-                    <span>{item.label}</span>
-                    {item.shortcut && (
-                      <span className="shortcut">{item.shortcut}</span>
-                    )}
-                  </div>
-                )
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+        </button>
+        {filePath && (
+          <span className="menu-bar-filename">
+            {filePath.split("/").pop()}
+          </span>
+        )}
+      </div>
+
+      {sidebarOpen && <div className="sidebar-overlay" />}
+
+      <div
+        ref={sidebarRef}
+        className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}
+      >
+        <div className="sidebar-header">
+          <span>Menu</span>
+          <button className="sidebar-close-btn" onClick={closeSidebar}>
+            ✕
+          </button>
+        </div>
+
+        <div className="sidebar-content">
+          {menus.map((menu) => (
+            <div key={menu.label} className="sidebar-category">
+              <div
+                className="sidebar-category-header"
+                onClick={() => toggleCategory(menu.label)}
+              >
+                <span>{menu.label}</span>
+                <span className={`sidebar-chevron ${expandedCategory === menu.label ? "sidebar-chevron-open" : ""}`}>
+                  ▸
+                </span>
+              </div>
+              {expandedCategory === menu.label && (
+                <div className="sidebar-category-items">
+                  {menu.items.map((item, i) =>
+                    item.separator ? (
+                      <div key={i} className="sidebar-separator" />
+                    ) : (
+                      <div
+                        key={i}
+                        className="sidebar-item"
+                        onClick={() => item.action()}
+                      >
+                        <span>{item.label}</span>
+                        {item.shortcut && (
+                          <span className="sidebar-shortcut">{item.shortcut}</span>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
               )}
             </div>
-          )}
+          ))}
         </div>
-      ))}
-      {filePath && (
-        <span style={{ marginLeft: "auto", fontSize: 12, color: "#888", paddingRight: 8 }}>
-          {filePath.split("/").pop()}
-        </span>
-      )}
-    </div>
+
+        {filePath && (
+          <div className="sidebar-footer">
+            {filePath.split("/").pop()}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
