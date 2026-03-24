@@ -213,6 +213,7 @@ html, body, #root {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .toolbar {
@@ -276,7 +277,40 @@ html, body, #root {
   padding: 12px;
   flex-shrink: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   user-select: none;
+  transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.properties-panel-closed {
+  width: 0;
+  padding: 0;
+  border-left: none;
+}
+
+.panel-toggle-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 20px;
+  height: 48px;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  background: #333;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.panel-toggle-btn:hover {
+  background: #4a4a4a;
+  color: #e0e0e0;
 }
 
 .properties-panel h3 {

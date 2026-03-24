@@ -2,7 +2,7 @@ import useAppStore from "../store/useAppStore";
 import type { FillStyle, StrokeStyle } from "../types";
 import ColorPicker from "./ColorPicker";
 
-export default function PropertiesPanel() {
+export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const strokeColor = useAppStore((s) => s.strokeColor);
   const fillColor = useAppStore((s) => s.fillColor);
   const fillStyle = useAppStore((s) => s.fillStyle);
@@ -22,7 +22,7 @@ export default function PropertiesPanel() {
   const setFontSize = useAppStore((s) => s.setFontSize);
 
   return (
-    <div className="properties-panel">
+    <div className={`properties-panel${open ? "" : " properties-panel-closed"}`}>
       <div className="prop-group">
         <h3>Colors</h3>
         <ColorPicker color={strokeColor} onChange={setStrokeColor} label="Stroke" />
