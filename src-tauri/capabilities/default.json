@@ -1,0 +1,17 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for RDraw",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:default",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "shell:allow-open"
+  ]
+}
