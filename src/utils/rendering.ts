@@ -5,6 +5,16 @@ import { getElementBounds } from "./geometry";
 
 const CULL_PADDING = 50;
 
+const freehandStrokeCache = new Map<string, { pointsLen: number; strokeWidth: number; output: [number, number][] }>();
+
+export function clearFreehandStrokeCache(elementId?: string): void {
+  if (elementId) {
+    freehandStrokeCache.delete(elementId);
+  } else {
+    freehandStrokeCache.clear();
+  }
+}
+
 export function getViewportBounds(
   viewTransform: { x: number; y: number; zoom: number },
   canvasWidth: number,
@@ -60,6 +70,17 @@ export function renderElements(
 
   const viewport = getViewportBounds(viewTransform, screenW, screenH);
   const rc = rough.canvas(canvas);
+
+  // Clean stale freehand stroke cache entries
+  if (freehandStrokeCache.size > 0) {
+    const currentFreehandIds = new Set<string>();
+    for (const el of elements) {
+      if (el.type === "freehand") currentFreehandIds.add(el.id);
+    }
+    for (const id of freehandStrokeCache.keys()) {
+      if (!currentFreehandIds.has(id)) freehandStrokeCache.delete(id);
+    }
+  }
 
   for (const el of elements) {
     const bounds = getElementBounds(el);
@@ -234,12 +255,19 @@ function renderFreehand(ctx: CanvasRenderingContext2D, el: FreehandElement): voi
 
   const absPoints = el.points.map(([px, py]) => [el.x + px, el.y + py]);
 
-  const stroke = getStroke(absPoints, {
-    size: el.strokeWidth * 2,
-    thinning: 0.5,
-    smoothing: 0.5,
-    streamline: 0.5,
-  });
+  const cached = freehandStrokeCache.get(el.id);
+  let stroke: [number, number][];
+  if (cached && cached.pointsLen === el.points.length && cached.strokeWidth === el.strokeWidth) {
+    stroke = cached.output;
+  } else {
+    stroke = getStroke(absPoints, {
+      size: el.strokeWidth * 2,
+      thinning: 0.5,
+      smoothing: 0.5,
+      streamline: 0.5,
+    }) as [number, number][];
+    freehandStrokeCache.set(el.id, { pointsLen: el.points.length, strokeWidth: el.strokeWidth, output: stroke });
+  }
 
   if (stroke.length < 2) return;
 

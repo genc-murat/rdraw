@@ -330,10 +330,12 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       } else if (tempElementRef.current.type === "freehand") {
         const el = tempElementRef.current as FreehandElement;
         const newPoint: [number, number] = [point.x - start.x, point.y - start.y];
-        tempElementRef.current = {
-          ...el,
-          points: [...el.points, newPoint],
-        } as FreehandElement;
+        const lastPoint = el.points[el.points.length - 1];
+        const dx = newPoint[0] - lastPoint[0];
+        const dy = newPoint[1] - lastPoint[1];
+        if (dx * dx + dy * dy >= 16) {
+          el.points.push(newPoint);
+        }
       }
     },
     [getCanvasPoint]

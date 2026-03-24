@@ -60,23 +60,38 @@ export default function Canvas() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let running = true;
+    let needsRender = true;
+
     const render = () => {
-      const allElements = tempElementRef.current
-        ? [...elements, tempElementRef.current]
-        : elements;
+      if (!running) return;
 
-      renderElements(ctx, allElements, selectedIds, viewTransform, showGrid, theme);
+      if (needsRender || isDrawing) {
+        needsRender = false;
 
-      const box = selectionBoxRef.current;
-      if (box && (box.width > 0 || box.height > 0)) {
-        renderSelectionBox(ctx, box, viewTransform);
+        const allElements = tempElementRef.current
+          ? [...elements, tempElementRef.current]
+          : elements;
+
+        renderElements(ctx, allElements, selectedIds, viewTransform, showGrid, theme);
+
+        const box = selectionBoxRef.current;
+        if (box && (box.width > 0 || box.height > 0)) {
+          renderSelectionBox(ctx, box, viewTransform);
+        }
       }
 
-      animFrameRef.current = requestAnimationFrame(render);
+      if (running) {
+        animFrameRef.current = requestAnimationFrame(render);
+      }
     };
 
+    needsRender = true;
     animFrameRef.current = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animFrameRef.current);
+    return () => {
+      running = false;
+      cancelAnimationFrame(animFrameRef.current);
+    };
   }, [elements, selectedIds, viewTransform, isDrawing, showGrid, theme, tempElementRef, selectionBoxRef]);
 
   // Cursor
