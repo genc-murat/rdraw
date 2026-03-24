@@ -34,7 +34,9 @@ export function renderElements(
   ctx: CanvasRenderingContext2D,
   elements: DrawElement[],
   selectedIds: string[],
-  viewTransform: { x: number; y: number; zoom: number }
+  viewTransform: { x: number; y: number; zoom: number },
+  showGrid: boolean = true,
+  theme: "dark" | "light" = "dark"
 ): void {
   const dpr = window.devicePixelRatio || 1;
   const canvas = ctx.canvas;
@@ -52,7 +54,9 @@ export function renderElements(
   const screenW = canvas.width / dpr;
   const screenH = canvas.height / dpr;
 
-  drawGrid(ctx, viewTransform, screenW, screenH);
+  if (showGrid) {
+    drawGrid(ctx, viewTransform, screenW, screenH, theme);
+  }
 
   const viewport = getViewportBounds(viewTransform, screenW, screenH);
   const rc = rough.canvas(canvas);
@@ -106,7 +110,8 @@ function drawGrid(
   ctx: CanvasRenderingContext2D,
   viewTransform: { x: number; y: number; zoom: number },
   width: number,
-  height: number
+  height: number,
+  theme: "dark" | "light" = "dark"
 ): void {
   const gridSize = 20;
   const startX = Math.floor(-viewTransform.x / viewTransform.zoom / gridSize) * gridSize;
@@ -115,7 +120,7 @@ function drawGrid(
   const endY = startY + height / viewTransform.zoom + gridSize * 2;
 
   ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.03)";
+  ctx.strokeStyle = theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.03)";
   ctx.lineWidth = 1 / viewTransform.zoom;
   ctx.beginPath();
 

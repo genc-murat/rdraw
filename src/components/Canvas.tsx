@@ -18,6 +18,8 @@ export default function Canvas() {
   const viewTransform = useAppStore((s) => s.viewTransform);
   const activeTool = useAppStore((s) => s.activeTool);
   const isDrawing = useAppStore((s) => s.isDrawing);
+  const showGrid = useAppStore((s) => s.showGrid);
+  const theme = useAppStore((s) => s.theme);
   const showTextInput = useAppStore((s) => s.showTextInput);
   const showMermaidInput = useAppStore((s) => s.showMermaidInput);
   const setShowTextInput = useAppStore((s) => s.setShowTextInput);
@@ -63,7 +65,7 @@ export default function Canvas() {
         ? [...elements, tempElementRef.current]
         : elements;
 
-      renderElements(ctx, allElements, selectedIds, viewTransform);
+      renderElements(ctx, allElements, selectedIds, viewTransform, showGrid, theme);
 
       const box = selectionBoxRef.current;
       if (box && (box.width > 0 || box.height > 0)) {
@@ -75,7 +77,7 @@ export default function Canvas() {
 
     animFrameRef.current = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [elements, selectedIds, viewTransform, isDrawing, tempElementRef, selectionBoxRef]);
+  }, [elements, selectedIds, viewTransform, isDrawing, showGrid, theme, tempElementRef, selectionBoxRef]);
 
   // Cursor
   useEffect(() => {

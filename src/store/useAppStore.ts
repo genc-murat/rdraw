@@ -37,6 +37,8 @@ const useAppStore = create<Store>((set, get) => ({
   filePath: null,
   showTextInput: null,
   showMermaidInput: null,
+  showGrid: true,
+  theme: "dark" as "dark" | "light",
 
   setTool: (tool) => set({ activeTool: tool, selectedIds: [] }),
 
@@ -279,6 +281,18 @@ const useAppStore = create<Store>((set, get) => ({
   setIsPanning: (panning) => set({ isPanning: panning }),
   setPanStart: (start) => set({ panStart: start }),
   setDrawStart: (start) => set({ drawStart: start }),
+  setShowGrid: (show) => set({ showGrid: show }),
+  toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+  setTheme: (theme) => {
+    document.body.classList.toggle("light-theme", theme === "light");
+    set({ theme });
+  },
+  toggleTheme: () =>
+    set((state) => {
+      const next = state.theme === "dark" ? "light" : "dark";
+      document.body.classList.toggle("light-theme", next === "light");
+      return { theme: next };
+    }),
 }));
 
 export default useAppStore;

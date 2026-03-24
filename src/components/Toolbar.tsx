@@ -17,6 +17,8 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
 export default function Toolbar() {
   const activeTool = useAppStore((s) => s.activeTool);
   const setTool = useAppStore((s) => s.setTool);
+  const showGrid = useAppStore((s) => s.showGrid);
+  const toggleGrid = useAppStore((s) => s.toggleGrid);
 
   return (
     <div className="toolbar">
@@ -30,6 +32,22 @@ export default function Toolbar() {
           <span style={{ fontSize: "18px", lineHeight: 1 }}>{tool.icon}</span>
         </button>
       ))}
+      <span
+        style={{
+          width: 1,
+          height: 24,
+          background: "var(--border-primary)",
+          margin: "0 4px",
+          flexShrink: 0,
+        }}
+      />
+      <button
+        className={`tool-btn ${showGrid ? "active" : ""}`}
+        onClick={toggleGrid}
+        title="Toggle Grid (G)"
+      >
+        <span style={{ fontSize: "16px", lineHeight: 1 }}>⊞</span>
+      </button>
     </div>
   );
 }

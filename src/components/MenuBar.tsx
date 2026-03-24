@@ -32,6 +32,10 @@ export default function MenuBar() {
   const resetView = useAppStore((s) => s.resetView);
   const bringToFront = useAppStore((s) => s.bringToFront);
   const sendToBack = useAppStore((s) => s.sendToBack);
+  const showGrid = useAppStore((s) => s.showGrid);
+  const toggleGrid = useAppStore((s) => s.toggleGrid);
+  const theme = useAppStore((s) => s.theme);
+  const toggleTheme = useAppStore((s) => s.toggleTheme);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -124,6 +128,9 @@ export default function MenuBar() {
       label: "View",
       items: [
         { label: "Reset View", shortcut: "", action: () => { resetView(); closeSidebar(); } },
+        { separator: true },
+        { label: `${showGrid ? "✓ " : ""}Toggle Grid`, shortcut: "", action: () => { toggleGrid(); closeSidebar(); } },
+        { label: `Toggle Theme (${theme === "dark" ? "Dark" : "Light"})`, shortcut: "", action: () => { toggleTheme(); closeSidebar(); } },
       ],
     },
     {

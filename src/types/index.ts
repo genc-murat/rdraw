@@ -108,6 +108,8 @@ export interface AppState {
   filePath: string | null;
   showTextInput: { x: number; y: number; screenX: number; screenY: number } | null;
   showMermaidInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
+  showGrid: boolean;
+  theme: "dark" | "light";
 }
 
 export interface AppActions {
@@ -147,4 +149,8 @@ export interface AppActions {
   setIsPanning: (panning: boolean) => void;
   setPanStart: (start: { x: number; y: number } | null) => void;
   setDrawStart: (start: { x: number; y: number } | null) => void;
+  setShowGrid: (show: boolean) => void;
+  toggleGrid: () => void;
+  setTheme: (theme: "dark" | "light") => void;
+  toggleTheme: () => void;
 }

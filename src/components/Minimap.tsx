@@ -13,6 +13,7 @@ export default function Minimap() {
   const elements = useAppStore((s) => s.elements);
   const viewTransform = useAppStore((s) => s.viewTransform);
   const setViewTransform = useAppStore((s) => s.setViewTransform);
+  const theme = useAppStore((s) => s.theme);
 
   // Resize minimap canvas
   useEffect(() => {
@@ -39,9 +40,10 @@ export default function Minimap() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
 
+      const isLight = theme === "light";
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "rgba(30, 30, 30, 0.9)";
+      ctx.fillStyle = isLight ? "rgba(245, 245, 245, 0.9)" : "rgba(30, 30, 30, 0.9)";
       ctx.fillRect(0, 0, MINIMAP_W, MINIMAP_H);
 
       if (elements.length > 0) {
@@ -68,7 +70,9 @@ export default function Minimap() {
 
         for (const el of elements) {
           const b = getElementBounds(el);
-          ctx.fillStyle = el.fillColor === "transparent" ? "rgba(255,255,255,0.15)" : el.fillColor;
+          ctx.fillStyle = el.fillColor === "transparent"
+            ? (isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)")
+            : el.fillColor;
           ctx.globalAlpha = el.opacity * 0.8;
           ctx.fillRect(b.x, b.y, Math.max(b.width, 2), Math.max(b.height, 2));
         }
@@ -83,12 +87,12 @@ export default function Minimap() {
         const vpW = parentW / viewTransform.zoom;
         const vpH = parentH / viewTransform.zoom;
 
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 255, 255, 0.6)";
         ctx.lineWidth = 2 / scale;
         ctx.setLineDash([4 / scale, 4 / scale]);
         ctx.strokeRect(vpX, vpY, vpW, vpH);
         ctx.setLineDash([]);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+        ctx.fillStyle = isLight ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.04)";
         ctx.fillRect(vpX, vpY, vpW, vpH);
       }
 
@@ -98,7 +102,7 @@ export default function Minimap() {
 
     animRef.current = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animRef.current);
-  }, [elements, viewTransform]);
+  }, [elements, viewTransform, theme]);
 
   // Click to navigate
   const handleClick = useCallback(

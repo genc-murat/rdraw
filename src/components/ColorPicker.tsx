@@ -12,13 +12,15 @@ export default function ColorPicker({
   label: string;
 }) {
   const [open, setOpen] = useState(false);
+  const theme = useAppStore((s) => s.theme);
+  const transparentBg = theme === "light" ? "#ffffff" : "#1e1e1e";
 
   return (
     <div className="prop-row">
       <span className="prop-label">{label}</span>
       <div
         className="color-swatch"
-        style={{ background: color === "transparent" ? "#1e1e1e" : color }}
+        style={{ background: color === "transparent" ? transparentBg : color }}
         onClick={() => setOpen(!open)}
       >
         {color === "transparent" && (
@@ -39,7 +41,7 @@ export default function ColorPicker({
             <div
               className={`color-grid-item ${color === "transparent" ? "selected" : ""}`}
               style={{
-                background: "#1e1e1e",
+                background: transparentBg,
                 position: "relative",
                 overflow: "hidden",
               }}
