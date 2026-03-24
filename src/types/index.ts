@@ -60,7 +60,7 @@ export interface MermaidNode {
   width: number;
   height: number;
   label: string;
-  shape: "rect" | "diamond" | "circle" | "stadium" | "hexagon";
+  shape: "rect" | "diamond" | "circle" | "stadium" | "hexagon" | "state-start" | "state-end";
 }
 
 export interface MermaidEdge {

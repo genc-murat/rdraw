@@ -156,7 +156,7 @@ export default function Canvas() {
 
     const isValid = await parseMermaidCode(code);
     if (!isValid) {
-      alert("Geçersiz Mermaid kodu. Lütfen flowchart veya sequence diagram syntax'ını kontrol edin.");
+      alert("Geçersiz Mermaid kodu. Lütfen flowchart, sequence veya state diagram syntax'ını kontrol edin.");
       return;
     }
 
@@ -352,7 +352,7 @@ function MermaidInputOverlay({
         ref={ref}
         className="mermaid-input-textarea"
         defaultValue={initialCode || "flowchart TD\n    A[Start] --> B[End]"}
-        placeholder={"flowchart TD\n    A[Start] --> B[End]\n\nor sequence diagram:\n\nsequenceDiagram\n    Alice->>Bob: Hello\n    Bob-->>Alice: Hi"}
+        placeholder={"flowchart TD\n    A[Start] --> B[End]\n\nor sequence diagram:\n\nsequenceDiagram\n    Alice->>Bob: Hello\n    Bob-->>Alice: Hi\n\nor state diagram:\n\nstateDiagram-v2\n    [*] --> Still\n    Still --> [*]\n    Still --> Moving\n    Moving --> Still"}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.preventDefault();

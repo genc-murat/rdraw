@@ -35,15 +35,19 @@ export interface MermaidRenderResult {
   edges: MermaidEdge[];
   width: number;
   height: number;
-  diagramType: "flowchart" | "sequence";
+  diagramType: "flowchart" | "sequence" | "state";
 }
 
 export async function renderMermaidDiagram(code: string): Promise<MermaidRenderResult> {
   initMermaid();
 
   const parseInfo = await mermaid.parse(code);
-  const diagramType: "flowchart" | "sequence" =
-    parseInfo.diagramType === "sequence" ? "sequence" : "flowchart";
+  let diagramType: "flowchart" | "sequence" | "state" = "flowchart";
+  if (parseInfo.diagramType === "sequence") {
+    diagramType = "sequence";
+  } else if (parseInfo.diagramType === "state") {
+    diagramType = "state";
+  }
 
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const { svg } = await mermaid.render(id, code);
@@ -51,7 +55,7 @@ export async function renderMermaidDiagram(code: string): Promise<MermaidRenderR
   return parseMermaidSVG(svg, diagramType);
 }
 
-function parseMermaidSVG(svgString: string, diagramType: "flowchart" | "sequence"): MermaidRenderResult {
+function parseMermaidSVG(svgString: string, diagramType: "flowchart" | "sequence" | "state"): MermaidRenderResult {
   const container = document.createElement("div");
   container.style.position = "absolute";
   container.style.left = "-99999px";
@@ -124,6 +128,7 @@ function extractNodes(svgEl: SVGElement): MermaidNode[] {
     let gy = translateMatch ? parseFloat(translateMatch[2]) : 0;
 
     const rect = group.querySelector("rect");
+    const circle = group.querySelector("circle");
     const ellipse = group.querySelector("ellipse");
     const polygon = group.querySelector("polygon");
     const path = group.querySelector("path.label-link");
@@ -145,16 +150,47 @@ function extractNodes(svgEl: SVGElement): MermaidNode[] {
       if (cornerRx > 0) {
         shape = "stadium";
       }
+    } else if (circle) {
+      const r = parseFloat(circle.getAttribute("r") || "0");
+      const cx = parseFloat(circle.getAttribute("cx") || "0");
+      const cy = parseFloat(circle.getAttribute("cy") || "0");
+      gx += cx - r;
+      gy += cy - r;
+      width = r * 2;
+      height = r * 2;
+      shape = "state-start";
     } else if (ellipse) {
-      const cx = parseFloat(ellipse.getAttribute("cx") || "0");
-      const cy = parseFloat(ellipse.getAttribute("cy") || "0");
-      const rx = parseFloat(ellipse.getAttribute("rx") || "0");
-      const ry = parseFloat(ellipse.getAttribute("ry") || "0");
-      gx += cx - rx;
-      gy += cy - ry;
-      width = rx * 2;
-      height = ry * 2;
-      shape = "circle";
+      const ellipses = group.querySelectorAll("ellipse");
+
+      if (ellipses.length >= 2) {
+        const outerEl = ellipses[0];
+        const innerEl = ellipses[1];
+        const ocx = parseFloat(outerEl.getAttribute("cx") || "0");
+        const ocy = parseFloat(outerEl.getAttribute("cy") || "0");
+        const orx = parseFloat(outerEl.getAttribute("rx") || "0");
+        const ory = parseFloat(outerEl.getAttribute("ry") || "0");
+        gx += ocx - orx;
+        gy += ocy - ory;
+        width = orx * 2;
+        height = ory * 2;
+        shape = "state-end";
+      } else {
+        const cx = parseFloat(ellipse.getAttribute("cx") || "0");
+        const cy = parseFloat(ellipse.getAttribute("cy") || "0");
+        const rx = parseFloat(ellipse.getAttribute("rx") || "0");
+        const ry = parseFloat(ellipse.getAttribute("ry") || "0");
+        gx += cx - rx;
+        gy += cy - ry;
+        width = rx * 2;
+        height = ry * 2;
+
+        const fill = ellipse.getAttribute("fill") || "";
+        if (fill && fill !== "transparent" && fill !== "none") {
+          shape = "state-start";
+        } else {
+          shape = "circle";
+        }
+      }
     } else if (polygon) {
       const points = polygon.getAttribute("points") || "";
       const parsedPoints = points.trim().split(/\s+/).map((p) => {
@@ -189,6 +225,13 @@ function extractNodes(svgEl: SVGElement): MermaidNode[] {
       width = bounds.maxX - bounds.minX;
       height = bounds.maxY - bounds.minY;
       shape = "stadium";
+    } else {
+      const allPaths = group.querySelectorAll("path");
+      if (allPaths.length >= 4) {
+        shape = "state-end";
+        width = 14;
+        height = 14;
+      }
     }
 
     let label = "";

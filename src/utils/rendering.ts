@@ -341,6 +341,32 @@ function renderMermaid(
         nh,
         options
       );
+    } else if (node.shape === "state-start") {
+      const cx = nx + nw / 2;
+      const cy = ny + nh / 2;
+      const r = Math.min(nw, nh) / 2;
+      ctx.save();
+      ctx.fillStyle = el.strokeColor;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (node.shape === "state-end") {
+      const cx = nx + nw / 2;
+      const cy = ny + nh / 2;
+      const outerR = Math.min(nw, nh) / 2;
+      const innerR = outerR * 0.55;
+      ctx.save();
+      ctx.strokeStyle = el.strokeColor;
+      ctx.lineWidth = el.strokeWidth;
+      ctx.fillStyle = el.strokeColor;
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     } else {
       rc.rectangle(nx, ny, nw, nh, {
         ...options,
