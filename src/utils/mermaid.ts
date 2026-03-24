@@ -35,18 +35,23 @@ export interface MermaidRenderResult {
   edges: MermaidEdge[];
   width: number;
   height: number;
+  diagramType: "flowchart" | "sequence";
 }
 
 export async function renderMermaidDiagram(code: string): Promise<MermaidRenderResult> {
   initMermaid();
 
+  const parseInfo = await mermaid.parse(code);
+  const diagramType: "flowchart" | "sequence" =
+    parseInfo.diagramType === "sequence" ? "sequence" : "flowchart";
+
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const { svg } = await mermaid.render(id, code);
 
-  return parseMermaidSVG(svg);
+  return parseMermaidSVG(svg, diagramType);
 }
 
-function parseMermaidSVG(svgString: string): MermaidRenderResult {
+function parseMermaidSVG(svgString: string, diagramType: "flowchart" | "sequence"): MermaidRenderResult {
   const container = document.createElement("div");
   container.style.position = "absolute";
   container.style.left = "-99999px";
@@ -58,11 +63,19 @@ function parseMermaidSVG(svgString: string): MermaidRenderResult {
   try {
     const svgEl = container.querySelector("svg");
     if (!svgEl) {
-      return { nodes: [], edges: [], width: 300, height: 200 };
+      return { nodes: [], edges: [], width: 300, height: 200, diagramType };
     }
 
-    const nodes = extractNodes(svgEl);
-    const edges = extractEdges(svgEl);
+    let nodes: MermaidNode[];
+    let edges: MermaidEdge[];
+
+    if (diagramType === "sequence") {
+      nodes = extractSequenceNodes(svgEl);
+      edges = extractSequenceEdges(svgEl);
+    } else {
+      nodes = extractNodes(svgEl);
+      edges = extractEdges(svgEl);
+    }
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const node of nodes) {
@@ -93,6 +106,7 @@ function parseMermaidSVG(svgString: string): MermaidRenderResult {
       edges,
       width: maxX - minX + padding * 2,
       height: maxY - minY + padding * 2,
+      diagramType,
     };
   } finally {
     document.body.removeChild(container);
@@ -238,6 +252,284 @@ function extractEdges(svgEl: SVGElement): MermaidEdge[] {
     }
 
     edges.push({ points, label });
+  }
+
+  return edges;
+}
+
+function extractSequenceNodes(svgEl: SVGElement): MermaidNode[] {
+  const nodes: MermaidNode[] = [];
+  const seenNames = new Set<string>();
+
+  // Find actors via text labels — works for all actor types (participant, database,
+  // boundary, control, entity, actor, collections, queue).
+  // Text elements have class "actor actor-box" or "actor actor-man".
+  const actorTexts = svgEl.querySelectorAll("text.actor");
+  for (const textEl of actorTexts) {
+    const label = textEl.textContent?.trim() || "";
+
+    // Walk up to the <g> with a name attribute (actor container group)
+    let container: Element | null = textEl.parentElement;
+    while (container && container !== svgEl) {
+      if (container.hasAttribute("name")) break;
+      container = container.parentElement;
+    }
+    if (!container || container === svgEl) continue;
+
+    const name = container.getAttribute("name") || "";
+    if (seenNames.has(name)) continue;
+    seenNames.add(name);
+
+    // Compute bounding box from all shape children in the actor group
+    const bounds = getGroupBounds(container);
+    if (bounds) {
+      nodes.push({
+        x: bounds.minX,
+        y: bounds.minY,
+        width: bounds.maxX - bounds.minX || 100,
+        height: bounds.maxY - bounds.minY || 40,
+        label: label || name,
+        shape: "rect",
+      });
+    }
+  }
+
+  // Fallback: find actors by rect.actor (for participant types where text lookup
+  // might not reach the named group due to nesting)
+  const actorRects = svgEl.querySelectorAll("rect.actor");
+  for (const rect of actorRects) {
+    let container: Element | null = rect.parentElement;
+    while (container && container !== svgEl) {
+      if (container.hasAttribute("name")) break;
+      container = container.parentElement;
+    }
+    const name = container?.getAttribute("name") || "";
+    if (name && seenNames.has(name)) continue;
+    if (name) seenNames.add(name);
+
+    const x = parseFloat(rect.getAttribute("x") || "0");
+    const y = parseFloat(rect.getAttribute("y") || "0");
+    const width = parseFloat(rect.getAttribute("width") || "0");
+    const height = parseFloat(rect.getAttribute("height") || "0");
+
+    let label = name;
+    if (!label) {
+      const parentG = rect.parentElement;
+      if (parentG) {
+        const textEl = parentG.querySelector("text.actor-box, text.actor");
+        if (textEl) label = textEl.textContent?.trim() || "";
+      }
+    }
+
+    nodes.push({ x, y, width: width || 100, height: height || 40, label, shape: "rect" });
+  }
+
+  // Note boxes
+  const noteRects = svgEl.querySelectorAll("rect.note");
+  for (const rect of noteRects) {
+    const x = parseFloat(rect.getAttribute("x") || "0");
+    const y = parseFloat(rect.getAttribute("y") || "0");
+    const width = parseFloat(rect.getAttribute("width") || "0");
+    const height = parseFloat(rect.getAttribute("height") || "0");
+
+    let label = "";
+    const parentG = rect.parentElement;
+    if (parentG) {
+      const textEl = parentG.querySelector("text");
+      if (textEl) {
+        label = textEl.textContent?.trim() || "";
+      }
+    }
+
+    nodes.push({ x, y, width: width || 100, height: height || 40, label, shape: "rect" });
+  }
+
+  // Label boxes (polygon.labelBox) — used for loops/alt/opt blocks
+  const labelBoxes = svgEl.querySelectorAll("polygon.labelBox");
+  for (const polygon of labelBoxes) {
+    const points = polygon.getAttribute("points") || "";
+    const parsedPoints = points.trim().split(/\s+/).map((p) => {
+      const [px, py] = p.split(",").map(Number);
+      return { x: px, y: py };
+    });
+
+    if (parsedPoints.length >= 2) {
+      let pMinX = Infinity, pMinY = Infinity, pMaxX = -Infinity, pMaxY = -Infinity;
+      for (const p of parsedPoints) {
+        pMinX = Math.min(pMinX, p.x);
+        pMinY = Math.min(pMinY, p.y);
+        pMaxX = Math.max(pMaxX, p.x);
+        pMaxY = Math.max(pMaxY, p.y);
+      }
+
+      let label = "";
+      const parentG = polygon.parentElement;
+      if (parentG) {
+        const textEl = parentG.querySelector("text");
+        if (textEl) {
+          label = textEl.textContent?.trim() || "";
+        }
+      }
+
+      nodes.push({
+        x: pMinX,
+        y: pMinY,
+        width: pMaxX - pMinX || 100,
+        height: pMaxY - pMinY || 40,
+        label,
+        shape: "rect",
+      });
+    }
+  }
+
+  return nodes;
+}
+
+function getGroupBounds(group: Element): { minX: number; minY: number; maxX: number; maxY: number } | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let found = false;
+
+  const shapes = group.querySelectorAll("rect, circle, ellipse, path, line, polygon");
+  for (const el of shapes) {
+    const tag = el.tagName.toLowerCase();
+    if (tag === "rect") {
+      const x = parseFloat(el.getAttribute("x") || "0");
+      const y = parseFloat(el.getAttribute("y") || "0");
+      const w = parseFloat(el.getAttribute("width") || "0");
+      const h = parseFloat(el.getAttribute("height") || "0");
+      if (w > 0 && h > 0) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + w);
+        maxY = Math.max(maxY, y + h);
+        found = true;
+      }
+    } else if (tag === "circle") {
+      const cx = parseFloat(el.getAttribute("cx") || "0");
+      const cy = parseFloat(el.getAttribute("cy") || "0");
+      const r = parseFloat(el.getAttribute("r") || "0");
+      if (r > 0) {
+        minX = Math.min(minX, cx - r);
+        minY = Math.min(minY, cy - r);
+        maxX = Math.max(maxX, cx + r);
+        maxY = Math.max(maxY, cy + r);
+        found = true;
+      }
+    } else if (tag === "ellipse") {
+      const cx = parseFloat(el.getAttribute("cx") || "0");
+      const cy = parseFloat(el.getAttribute("cy") || "0");
+      const rx = parseFloat(el.getAttribute("rx") || "0");
+      const ry = parseFloat(el.getAttribute("ry") || "0");
+      if (rx > 0 && ry > 0) {
+        minX = Math.min(minX, cx - rx);
+        minY = Math.min(minY, cy - ry);
+        maxX = Math.max(maxX, cx + rx);
+        maxY = Math.max(maxY, cy + ry);
+        found = true;
+      }
+    } else if (tag === "line") {
+      const x1 = parseFloat(el.getAttribute("x1") || "0");
+      const y1 = parseFloat(el.getAttribute("y1") || "0");
+      const x2 = parseFloat(el.getAttribute("x2") || "0");
+      const y2 = parseFloat(el.getAttribute("y2") || "0");
+      minX = Math.min(minX, x1, x2);
+      minY = Math.min(minY, y1, y2);
+      maxX = Math.max(maxX, x1, x2);
+      maxY = Math.max(maxY, y1, y2);
+      found = true;
+    } else if (tag === "polygon") {
+      const points = el.getAttribute("points") || "";
+      const parsed = points.trim().split(/\s+/).map((p) => {
+        const [px, py] = p.split(",").map(Number);
+        return { x: px, y: py };
+      });
+      for (const p of parsed) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+        found = true;
+      }
+    } else if (tag === "path") {
+      const d = el.getAttribute("d") || "";
+      const pathBounds = getSVGBounds(d);
+      if (isFinite(pathBounds.minX)) {
+        minX = Math.min(minX, pathBounds.minX);
+        minY = Math.min(minY, pathBounds.minY);
+        maxX = Math.max(maxX, pathBounds.maxX);
+        maxY = Math.max(maxY, pathBounds.maxY);
+        found = true;
+      }
+    }
+  }
+
+  // Also include text elements for bounds
+  const texts = group.querySelectorAll("text");
+  for (const textEl of texts) {
+    const tx = parseFloat(textEl.getAttribute("x") || "0");
+    const ty = parseFloat(textEl.getAttribute("y") || "0");
+    if (isFinite(tx) && isFinite(ty)) {
+      // Text x/y is typically the center, estimate bounds
+      const estWidth = (textEl.textContent?.length || 4) * 7;
+      const estHeight = 16;
+      minX = Math.min(minX, tx - estWidth / 2);
+      minY = Math.min(minY, ty - estHeight / 2);
+      maxX = Math.max(maxX, tx + estWidth / 2);
+      maxY = Math.max(maxY, ty + estHeight / 2);
+      found = true;
+    }
+  }
+
+  return found ? { minX, minY, maxX, maxY } : null;
+}
+
+function extractSequenceEdges(svgEl: SVGElement): MermaidEdge[] {
+  const edges: MermaidEdge[] = [];
+
+  const messageLines = svgEl.querySelectorAll("line.messageLine0, line.messageLine1");
+  const messageTexts = svgEl.querySelectorAll("text.messageText");
+
+  // Collect text y-positions for label matching
+  const textPositions: { text: string; y: number }[] = [];
+  for (const textEl of messageTexts) {
+    const yAttr = textEl.getAttribute("y");
+    if (yAttr) {
+      textPositions.push({
+        text: textEl.textContent?.trim() || "",
+        y: parseFloat(yAttr),
+      });
+    }
+  }
+
+  for (const line of messageLines) {
+    const x1 = parseFloat(line.getAttribute("x1") || "0");
+    const y1 = parseFloat(line.getAttribute("y1") || "0");
+    const x2 = parseFloat(line.getAttribute("x2") || "0");
+    const y2 = parseFloat(line.getAttribute("y2") || "0");
+
+    // Match label by y-coordinate proximity (message text sits near the line)
+    let label: string | undefined;
+    const lineMidY = (y1 + y2) / 2;
+    let closestDist = Infinity;
+    for (const tp of textPositions) {
+      const dist = Math.abs(tp.y - lineMidY);
+      if (dist < closestDist && dist < 20) {
+        closestDist = dist;
+        label = tp.text || undefined;
+      }
+    }
+
+    edges.push({ points: [[x1, y1], [x2, y2]], label });
+  }
+
+  // Actor lifelines — vertical lines connecting participant boxes top to bottom
+  const lifelines = svgEl.querySelectorAll("line.actor-line");
+  for (const line of lifelines) {
+    const x1 = parseFloat(line.getAttribute("x1") || "0");
+    const y1 = parseFloat(line.getAttribute("y1") || "0");
+    const x2 = parseFloat(line.getAttribute("x2") || "0");
+    const y2 = parseFloat(line.getAttribute("y2") || "0");
+    edges.push({ points: [[x1, y1], [x2, y2]] });
   }
 
   return edges;
