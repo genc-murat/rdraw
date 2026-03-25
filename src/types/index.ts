@@ -10,7 +10,15 @@ export type Tool =
   | "highlight"
   | "text"
   | "note"
-  | "mermaid";
+  | "mermaid"
+  | "c4-person"
+  | "c4-software-system"
+  | "c4-container"
+  | "c4-component"
+  | "c4-database"
+  | "c4-system-boundary"
+  | "c4-enterprise-boundary"
+  | "c4-relationship";
 
 export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none";
 export type StrokeStyle = "solid" | "dashed" | "dotted";
@@ -86,7 +94,32 @@ export interface MermaidElement extends DrawElementBase {
   originalHeight: number;
 }
 
-export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | NoteElement | MermaidElement;
+export type C4Type =
+  | "c4-person"
+  | "c4-software-system"
+  | "c4-container"
+  | "c4-component"
+  | "c4-database"
+  | "c4-system-boundary"
+  | "c4-enterprise-boundary";
+
+export interface C4Element extends DrawElementBase {
+  type: "c4-person" | "c4-software-system" | "c4-container" | "c4-component" | "c4-database" | "c4-system-boundary" | "c4-enterprise-boundary";
+  c4Type: C4Type;
+  label: string;
+  description: string;
+  technology: string;
+}
+
+export interface C4RelationshipElement extends DrawElementBase {
+  type: "c4-relationship";
+  points: [number, number][];
+  endArrowhead: boolean;
+  startArrowhead: boolean;
+  label: string;
+}
+
+export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | NoteElement | MermaidElement | C4Element | C4RelationshipElement;
 
 export interface Page {
   id: string;
@@ -131,6 +164,7 @@ export interface AppState {
   filePath: string | null;
   showTextInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showMermaidInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
+  showC4LabelInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showGrid: boolean;
   theme: "dark" | "light";
   pages: Page[];
@@ -171,6 +205,7 @@ export interface AppActions {
   setFontSize: (size: number) => void;
   setShowTextInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setShowMermaidInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
+  setShowC4LabelInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setIsDrawing: (drawing: boolean) => void;
   setIsPanning: (panning: boolean) => void;
   setPanStart: (start: { x: number; y: number } | null) => void;

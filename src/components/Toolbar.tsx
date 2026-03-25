@@ -16,6 +16,17 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: "mermaid", label: "Mermaid (M)", icon: "⌥" },
 ];
 
+const C4_TOOLS: { id: Tool; label: string; icon: string }[] = [
+  { id: "c4-person", label: "Person (1)", icon: "🧑" },
+  { id: "c4-software-system", label: "Software System (2)", icon: "⬜" },
+  { id: "c4-container", label: "Container (3)", icon: "📦" },
+  { id: "c4-component", label: "Component (4)", icon: "⚙" },
+  { id: "c4-database", label: "Database (5)", icon: "🛢" },
+  { id: "c4-system-boundary", label: "System Boundary (6)", icon: "▭" },
+  { id: "c4-enterprise-boundary", label: "Enterprise Boundary (7)", icon: "▭" },
+  { id: "c4-relationship", label: "Relationship (8)", icon: "⟶" },
+];
+
 export default function Toolbar() {
   const activeTool = useAppStore((s) => s.activeTool);
   const setTool = useAppStore((s) => s.setTool);
@@ -25,6 +36,25 @@ export default function Toolbar() {
   return (
     <div className="toolbar">
       {TOOLS.map((tool) => (
+        <button
+          key={tool.id}
+          className={`tool-btn ${activeTool === tool.id ? "active" : ""}`}
+          onClick={() => setTool(tool.id)}
+          title={tool.label}
+        >
+          <span style={{ fontSize: "18px", lineHeight: 1 }}>{tool.icon}</span>
+        </button>
+      ))}
+      <span
+        style={{
+          width: 1,
+          height: 24,
+          background: "var(--border-primary)",
+          margin: "0 4px",
+          flexShrink: 0,
+        }}
+      />
+      {C4_TOOLS.map((tool) => (
         <button
           key={tool.id}
           className={`tool-btn ${activeTool === tool.id ? "active" : ""}`}

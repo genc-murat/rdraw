@@ -86,6 +86,22 @@ export function useKeyboardShortcuts() {
         setTool("note");
       } else if ((e.key === "g" || e.key === "G") && !ctrl) {
         setTool("highlight");
+      } else if (e.key === "1") {
+        setTool("c4-person");
+      } else if (e.key === "2") {
+        setTool("c4-software-system");
+      } else if (e.key === "3") {
+        setTool("c4-container");
+      } else if (e.key === "4") {
+        setTool("c4-component");
+      } else if (e.key === "5") {
+        setTool("c4-database");
+      } else if (e.key === "6") {
+        setTool("c4-system-boundary");
+      } else if (e.key === "7") {
+        setTool("c4-enterprise-boundary");
+      } else if (e.key === "8") {
+        setTool("c4-relationship");
       } else if (e.key === "[" || e.key === "{") {
         sendToBack();
       } else if (e.key === "]" || e.key === "}") {

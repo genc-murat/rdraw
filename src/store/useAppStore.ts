@@ -15,6 +15,7 @@ import {
   DEFAULT_NOTE_COLOR,
   DEFAULT_NOTE_TEXT_COLOR,
   DEFAULT_NOTE_FONT_SIZE,
+  C4_COLORS,
   HISTORY_LIMIT,
   MAX_PAGES,
 } from "../utils/constants";
@@ -44,6 +45,7 @@ const useAppStore = create<Store>((set, get) => ({
   filePath: null,
   showTextInput: null,
   showMermaidInput: null,
+  showC4LabelInput: null,
   showGrid: true,
   theme: "dark" as "dark" | "light",
   pages: [{ id: "page-default", name: "Page 1", elements: [] }],
@@ -63,6 +65,13 @@ const useAppStore = create<Store>((set, get) => ({
       updates.strokeWidth = DEFAULT_STROKE_WIDTH;
       updates.opacity = DEFAULT_OPACITY;
       updates.fontSize = DEFAULT_NOTE_FONT_SIZE;
+    } else if (C4_COLORS[tool]) {
+      const c4 = C4_COLORS[tool];
+      updates.strokeColor = c4.stroke;
+      updates.fillColor = c4.fill;
+      updates.fillStyle = "solid";
+      updates.strokeWidth = DEFAULT_STROKE_WIDTH;
+      updates.opacity = DEFAULT_OPACITY;
     } else {
       updates.strokeColor = DEFAULT_STROKE_COLOR;
       updates.strokeWidth = DEFAULT_STROKE_WIDTH;
@@ -333,6 +342,7 @@ const useAppStore = create<Store>((set, get) => ({
 
   setShowTextInput: (pos) => set({ showTextInput: pos }),
   setShowMermaidInput: (pos) => set({ showMermaidInput: pos }),
+  setShowC4LabelInput: (pos) => set({ showC4LabelInput: pos }),
   setIsDrawing: (drawing) => set({ isDrawing: drawing }),
   setIsPanning: (panning) => set({ isPanning: panning }),
   setPanStart: (start) => set({ panStart: start }),

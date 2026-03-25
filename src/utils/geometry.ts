@@ -6,7 +6,7 @@ export function getElementBounds(el: DrawElement): {
   width: number;
   height: number;
 } {
-  if (el.type === "line" || el.type === "arrow") {
+  if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship") {
     const lineEl = el as LineElement;
     if (lineEl.points.length < 2) {
       return { x: el.x, y: el.y, width: 0, height: 0 };
@@ -63,7 +63,7 @@ export function pointInElement(
 ): boolean {
   const bounds = getElementBounds(el);
 
-  if (el.type === "line" || el.type === "arrow") {
+  if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship") {
     const lineEl = el as LineElement;
     for (let i = 0; i < lineEl.points.length - 1; i++) {
       const [x1, y1] = lineEl.points[i];

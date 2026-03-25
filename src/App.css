@@ -755,3 +755,68 @@ html, body, #root {
   background: #5a1d1d;
   color: #ff6b6b;
 }
+
+/* C4 Label Input Overlay */
+.c4-label-input-overlay {
+  position: absolute;
+  z-index: 200;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--shadow-heavy);
+  min-width: 300px;
+  overflow: hidden;
+}
+
+.c4-label-input-header {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border-bottom: 1px solid var(--border-secondary);
+  user-select: none;
+}
+
+.c4-label-input-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c4-label-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.c4-label-input-field span {
+  font-size: 11px;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.c4-label-input {
+  background: var(--surface-hover);
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 5px 8px;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.c4-label-input:focus {
+  border-color: var(--accent);
+}
+
+.c4-label-input-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-secondary);
+}

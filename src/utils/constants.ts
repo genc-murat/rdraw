@@ -35,3 +35,22 @@ export const DEFAULT_NOTE_FONT_SIZE = 16;
 export const NOTE_PADDING_X = 16;
 export const NOTE_PADDING_Y = 12;
 export const NOTE_FOLD_SIZE = 20;
+
+export const C4_COLORS: Record<string, { fill: string; stroke: string; text: string }> = {
+  "c4-person": { fill: "#08427b", stroke: "#073b6f", text: "#ffffff" },
+  "c4-software-system": { fill: "#1168bd", stroke: "#0d5aa7", text: "#ffffff" },
+  "c4-container": { fill: "#438dd5", stroke: "#3a7cbf", text: "#ffffff" },
+  "c4-component": { fill: "#85bbf0", stroke: "#6eabe3", text: "#000000" },
+  "c4-database": { fill: "#438dd5", stroke: "#3a7cbf", text: "#ffffff" },
+  "c4-system-boundary": { fill: "transparent", stroke: "#888888", text: "#888888" },
+  "c4-enterprise-boundary": { fill: "transparent", stroke: "#888888", text: "#888888" },
+  "c4-relationship": { fill: "transparent", stroke: "#707070", text: "#707070" },
+};
+
+export const C4_DEFAULT_WIDTH = 200;
+export const C4_DEFAULT_HEIGHT = 120;
+export const C4_BOUNDARY_DEFAULT_WIDTH = 400;
+export const C4_BOUNDARY_DEFAULT_HEIGHT = 300;
+export const C4_FONT_SIZE = 12;
+export const C4_DESC_FONT_SIZE = 10;
+export const C4_TECH_FONT_SIZE = 9;

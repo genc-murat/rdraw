@@ -1,8 +1,8 @@
 import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, NoteElement, MermaidElement } from "../types";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, NoteElement, MermaidElement, C4Element, C4RelationshipElement } from "../types";
 import { getElementBounds } from "./geometry";
-import { NOTE_FOLD_SIZE } from "./constants";
+import { NOTE_FOLD_SIZE, C4_FONT_SIZE, C4_DESC_FONT_SIZE, C4_TECH_FONT_SIZE } from "./constants";
 
 const CULL_PADDING = 50;
 
@@ -102,6 +102,10 @@ export function renderElements(
       renderNote(ctx, rc, el as NoteElement);
     } else if (el.type === "mermaid") {
       renderMermaid(ctx, rc, el as MermaidElement);
+    } else if (el.type.startsWith("c4-") && el.type !== "c4-relationship") {
+      renderC4Element(ctx, rc, el as C4Element);
+    } else if (el.type === "c4-relationship") {
+      renderC4Relationship(ctx, rc, el as C4RelationshipElement);
     }
 
     ctx.restore();
@@ -497,6 +501,294 @@ function renderMermaid(
       }
       ctx.restore();
     }
+  }
+}
+
+function renderC4Element(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: C4Element
+): void {
+  const { x, y, width, height, c4Type } = el;
+
+  if (c4Type === "c4-person") {
+    renderC4Person(ctx, rc, el);
+  } else if (c4Type === "c4-database") {
+    renderC4Database(ctx, rc, el);
+  } else if (c4Type === "c4-system-boundary" || c4Type === "c4-enterprise-boundary") {
+    renderC4Boundary(ctx, rc, el);
+  } else {
+    renderC4Box(ctx, rc, el);
+  }
+}
+
+function renderC4Box(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: C4Element
+): void {
+  const radius = 8;
+  const options = {
+    seed: el.seed,
+    stroke: el.strokeColor,
+    strokeWidth: el.strokeWidth,
+    roughness: el.roughness,
+    fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+    fillStyle: "solid" as const,
+    bowing: el.roughness * 0.3,
+  };
+
+  // Draw rounded rectangle
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(el.x, el.y, el.width, el.height, radius);
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw rough.js overlay for sketch effect
+  rc.rectangle(el.x, el.y, el.width, el.height, {
+    ...options,
+    fill: undefined,
+    fillStyle: undefined,
+  });
+
+  renderC4Labels(ctx, el);
+}
+
+function renderC4Person(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: C4Element
+): void {
+  const cx = el.x + el.width / 2;
+  const headRadius = Math.min(el.width, el.height) * 0.15;
+
+  // Draw head (circle)
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, el.y + headRadius + 4, headRadius, 0, Math.PI * 2);
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw body line
+  const bodyTop = el.y + headRadius * 2 + 4;
+  const bodyBottom = el.y + el.height * 0.6;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, bodyTop);
+  ctx.lineTo(cx, bodyBottom);
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw legs
+  const legY = bodyBottom;
+  const legEndY = el.y + el.height - 4;
+  const legSpread = el.width * 0.25;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, legY);
+  ctx.lineTo(cx - legSpread, legEndY);
+  ctx.moveTo(cx, legY);
+  ctx.lineTo(cx + legSpread, legEndY);
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw arms
+  const armY = bodyTop + (bodyBottom - bodyTop) * 0.3;
+  const armSpread = el.width * 0.3;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, armY);
+  ctx.lineTo(cx - armSpread, armY + el.height * 0.15);
+  ctx.moveTo(cx, armY);
+  ctx.lineTo(cx + armSpread, armY + el.height * 0.15);
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  renderC4Labels(ctx, el, true);
+}
+
+function renderC4Database(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: C4Element
+): void {
+  const { x, y, width, height } = el;
+  const ry = height * 0.12;
+
+  // Draw cylinder body
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x, y + ry);
+  ctx.lineTo(x, y + height - ry);
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x + width, y + ry);
+  ctx.lineTo(x + width, y + height - ry);
+  ctx.stroke();
+
+  // Bottom arc
+  ctx.beginPath();
+  ctx.ellipse(x + width / 2, y + height - ry, width / 2, ry, 0, 0, Math.PI);
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+  ctx.stroke();
+
+  // Body fill
+  ctx.beginPath();
+  ctx.rect(x, y + ry, width, height - ry * 2);
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+
+  // Top ellipse
+  ctx.beginPath();
+  ctx.ellipse(x + width / 2, y + ry, width / 2, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  renderC4Labels(ctx, el);
+}
+
+function renderC4Boundary(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: C4Element
+): void {
+  ctx.save();
+  ctx.setLineDash([8, 4]);
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.strokeRect(el.x, el.y, el.width, el.height);
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Label at top-left
+  const label = el.label || (el.c4Type === "c4-enterprise-boundary" ? "Enterprise" : "System");
+  ctx.save();
+  ctx.fillStyle = el.strokeColor;
+  ctx.font = `bold ${C4_FONT_SIZE}px sans-serif`;
+  ctx.textBaseline = "top";
+  ctx.fillText(label, el.x + 8, el.y + 6, el.width - 16);
+  ctx.restore();
+}
+
+function renderC4Labels(ctx: CanvasRenderingContext2D, el: C4Element, isPerson: boolean = false): void {
+  const cx = el.x + el.width / 2;
+  const lines: { text: string; fontSize: number; bold: boolean }[] = [];
+
+  if (el.label) {
+    lines.push({ text: el.label, fontSize: C4_FONT_SIZE, bold: true });
+  }
+  if (el.description) {
+    lines.push({ text: el.description, fontSize: C4_DESC_FONT_SIZE, bold: false });
+  }
+  if (el.technology) {
+    lines.push({ text: `[${el.technology}]`, fontSize: C4_TECH_FONT_SIZE, bold: false });
+  }
+
+  if (lines.length === 0) return;
+
+  const totalHeight = lines.reduce((sum, l) => sum + l.fontSize * 1.3, 0);
+  let startY: number;
+  if (isPerson) {
+    startY = el.y + el.height * 0.55;
+  } else {
+    startY = el.y + el.height / 2 - totalHeight / 2;
+  }
+
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+
+  for (const line of lines) {
+    ctx.fillStyle = (el.c4Type === "c4-system-boundary" || el.c4Type === "c4-enterprise-boundary")
+      ? el.strokeColor
+      : "#ffffff";
+    ctx.font = `${line.bold ? "bold " : ""}${line.fontSize}px sans-serif`;
+    ctx.fillText(line.text, cx, startY, el.width - 16);
+    startY += line.fontSize * 1.3;
+  }
+  ctx.restore();
+}
+
+function renderC4Relationship(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: C4RelationshipElement
+): void {
+  if (el.points.length < 2) return;
+
+  const absPoints = el.points.map(([px, py]) => [el.x + px, el.y + py] as [number, number]);
+  const start = absPoints[0];
+  const end = absPoints[absPoints.length - 1];
+
+  const options = {
+    seed: el.seed,
+    stroke: el.strokeColor,
+    strokeWidth: el.strokeWidth,
+    roughness: el.roughness,
+  };
+
+  // Dashed line
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(start[0], start[1]);
+  ctx.lineTo(end[0], end[1]);
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Arrowhead
+  const angle = Math.atan2(end[1] - start[1], end[0] - start[0]);
+  const arrowLen = 12 + el.strokeWidth * 2;
+  const arrowAngle = Math.PI / 6;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(end[0], end[1]);
+  ctx.lineTo(end[0] - arrowLen * Math.cos(angle - arrowAngle), end[1] - arrowLen * Math.sin(angle - arrowAngle));
+  ctx.moveTo(end[0], end[1]);
+  ctx.lineTo(end[0] - arrowLen * Math.cos(angle + arrowAngle), end[1] - arrowLen * Math.sin(angle + arrowAngle));
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  // Label
+  if (el.label) {
+    const mx = (start[0] + end[0]) / 2;
+    const my = (start[1] + end[1]) / 2;
+    ctx.save();
+    ctx.fillStyle = el.strokeColor;
+    ctx.font = `${C4_FONT_SIZE}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(el.label, mx, my - 4, Math.abs(end[0] - start[0]) - 20);
+    ctx.restore();
   }
 }
 

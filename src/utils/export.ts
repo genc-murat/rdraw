@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
-import type { DrawElement, MermaidElement, NoteElement, Page } from "../types";
+import type { DrawElement, MermaidElement, NoteElement, C4Element, C4RelationshipElement, Page } from "../types";
 
 export interface DrawingDataV1 {
   version: 1;
@@ -167,10 +167,69 @@ function generateSVG(elements: DrawElement[]): string {
           svg += `<text x="${nx + nw / 2}" y="${ny + nh / 2}" fill="${el.strokeColor}" font-size="14px" text-anchor="middle" dominant-baseline="middle">${node.label}</text>`;
         }
       }
+    } else if (el.type === "c4-relationship") {
+      const c4rel = el as C4RelationshipElement;
+      if (c4rel.points.length >= 2) {
+        const start = c4rel.points[0];
+        const end = c4rel.points[c4rel.points.length - 1];
+        svg += `<line x1="${el.x + start[0]}" y1="${el.y + start[1]}" x2="${el.x + end[0]}" y2="${el.y + end[1]}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" stroke-dasharray="6,4" opacity="${el.opacity}" />`;
+        if (c4rel.label) {
+          const mx = el.x + (start[0] + end[0]) / 2;
+          const my = el.y + (start[1] + end[1]) / 2;
+          svg += `<text x="${mx}" y="${my - 4}" fill="${el.strokeColor}" font-size="12px" text-anchor="middle">${escapeXml(c4rel.label)}</text>`;
+        }
+      }
+    } else if (el.type.startsWith("c4-")) {
+      const c4el = el as C4Element;
+      const c4Type = c4el.c4Type;
+      if (c4Type === "c4-system-boundary" || c4Type === "c4-enterprise-boundary") {
+        svg += `<rect x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" fill="none" stroke-dasharray="8,4" opacity="${el.opacity}" />`;
+        const label = c4el.label || (c4Type === "c4-enterprise-boundary" ? "Enterprise" : "System");
+        svg += `<text x="${el.x + 8}" y="${el.y + 18}" fill="${el.strokeColor}" font-size="12px" font-weight="bold">${escapeXml(label)}</text>`;
+      } else if (c4Type === "c4-database") {
+        const ry = el.height * 0.12;
+        svg += `<rect x="${el.x}" y="${el.y + ry}" width="${el.width}" height="${el.height - ry * 2}" fill="${el.fillColor}" opacity="${el.opacity}" />`;
+        svg += `<ellipse cx="${el.x + el.width / 2}" cy="${el.y + ry}" rx="${el.width / 2}" ry="${ry}" fill="${el.fillColor}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        svg += `<ellipse cx="${el.x + el.width / 2}" cy="${el.y + el.height - ry}" rx="${el.width / 2}" ry="${ry}" fill="${el.fillColor}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        svg += generateC4LabelSvg(c4el, el.x + el.width / 2, el.y + el.height / 2);
+      } else if (c4Type === "c4-person") {
+        const headR = Math.min(el.width, el.height) * 0.15;
+        const cx = el.x + el.width / 2;
+        svg += `<circle cx="${cx}" cy="${el.y + headR + 4}" r="${headR}" fill="${el.fillColor}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        const bodyTop = el.y + headR * 2 + 4;
+        const bodyBottom = el.y + el.height * 0.6;
+        svg += `<line x1="${cx}" y1="${bodyTop}" x2="${cx}" y2="${bodyBottom}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        svg += `<line x1="${cx}" y1="${bodyBottom}" x2="${cx - el.width * 0.25}" y2="${el.y + el.height - 4}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        svg += `<line x1="${cx}" y1="${bodyBottom}" x2="${cx + el.width * 0.25}" y2="${el.y + el.height - 4}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        svg += generateC4LabelSvg(c4el, cx, el.y + el.height * 0.7);
+      } else {
+        svg += `<rect x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}" rx="8" ry="8" fill="${el.fillColor}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" opacity="${el.opacity}" />`;
+        svg += generateC4LabelSvg(c4el, el.x + el.width / 2, el.y + el.height / 2);
+      }
     }
   }
 
   svg += `</svg>`;
+  return svg;
+}
+
+function generateC4LabelSvg(el: C4Element, cx: number, cy: number): string {
+  let svg = "";
+  const lines: { text: string; fontSize: number }[] = [];
+  if (el.label) lines.push({ text: el.label, fontSize: 12 });
+  if (el.description) lines.push({ text: el.description, fontSize: 10 });
+  if (el.technology) lines.push({ text: `[${el.technology}]`, fontSize: 9 });
+
+  if (lines.length === 0) return "";
+
+  const totalHeight = lines.reduce((sum, l) => sum + l.fontSize * 1.3, 0);
+  let startY = cy - totalHeight / 2;
+  const fill = (el.c4Type === "c4-system-boundary" || el.c4Type === "c4-enterprise-boundary") ? el.strokeColor : "#ffffff";
+
+  for (const line of lines) {
+    startY += line.fontSize * 1.3;
+    svg += `<text x="${cx}" y="${startY}" fill="${fill}" font-size="${line.fontSize}px" text-anchor="middle">${escapeXml(line.text)}</text>`;
+  }
   return svg;
 }
 

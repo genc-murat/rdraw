@@ -2,8 +2,8 @@ import { useRef, useCallback, useEffect } from "react";
 import useAppStore from "../store/useAppStore";
 import { generateId, generateSeed } from "../utils/ids";
 import { screenToCanvas, pointInElement, getResizeHandle, getElementBounds, getNoteCloneHandle } from "../utils/geometry";
-import { DEFAULT_NOTE_FONT_SIZE, DEFAULT_FONT_FAMILY } from "../utils/constants";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement, NoteElement } from "../types";
+import { DEFAULT_NOTE_FONT_SIZE, DEFAULT_FONT_FAMILY, C4_COLORS, C4_DEFAULT_WIDTH, C4_DEFAULT_HEIGHT, C4_BOUNDARY_DEFAULT_WIDTH, C4_BOUNDARY_DEFAULT_HEIGHT } from "../utils/constants";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, NoteElement, C4Element, C4RelationshipElement, C4Type } from "../types";
 
 const CLAMP_COORDINATE = 1e7;
 
@@ -214,6 +214,37 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         return;
       }
 
+      const c4ShapeTypes: C4Type[] = ["c4-person", "c4-software-system", "c4-container", "c4-component", "c4-database", "c4-system-boundary", "c4-enterprise-boundary"];
+      if (c4ShapeTypes.includes(state.activeTool as C4Type)) {
+        state.pushHistory();
+        state.setIsDrawing(true);
+        state.setDrawStart({ x: point.x, y: point.y });
+        const c4Colors = C4_COLORS[state.activeTool] || { fill: "#1168bd", stroke: "#0d5aa7", text: "#ffffff" };
+        const el: C4Element = {
+          id: generateId(),
+          type: state.activeTool as C4Type,
+          c4Type: state.activeTool as C4Type,
+          x: point.x,
+          y: point.y,
+          width: 0,
+          height: 0,
+          strokeColor: c4Colors.stroke,
+          fillColor: c4Colors.fill,
+          fillStyle: "solid",
+          strokeStyle: (state.activeTool === "c4-system-boundary" || state.activeTool === "c4-enterprise-boundary") ? "dashed" : "solid",
+          strokeWidth: state.strokeWidth,
+          roughness: state.roughness,
+          opacity: state.opacity,
+          rotation: 0,
+          seed: generateSeed(),
+          label: "",
+          description: "",
+          technology: "",
+        };
+        tempElementRef.current = el;
+        return;
+      }
+
       state.pushHistory();
       state.setIsDrawing(true);
       state.setDrawStart({ x: point.x, y: point.y });
@@ -237,15 +268,16 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           seed: generateSeed(),
         };
         tempElementRef.current = el;
-      } else if (state.activeTool === "line" || state.activeTool === "arrow") {
-        const el: LineElement = {
+      } else if (state.activeTool === "line" || state.activeTool === "arrow" || state.activeTool === "c4-relationship") {
+        const c4Colors = state.activeTool === "c4-relationship" ? C4_COLORS["c4-relationship"] : null;
+        const el: LineElement | C4RelationshipElement = {
           id: generateId(),
           type: state.activeTool,
           x: point.x,
           y: point.y,
           width: 0,
           height: 0,
-          strokeColor: state.strokeColor,
+          strokeColor: c4Colors ? c4Colors.stroke : state.strokeColor,
           fillColor: state.fillColor,
           fillStyle: state.fillStyle,
           strokeStyle: state.strokeStyle,
@@ -255,10 +287,11 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           rotation: 0,
           seed: generateSeed(),
           points: [[0, 0], [0, 0]],
-          endArrowhead: state.activeTool === "arrow",
+          endArrowhead: true,
           startArrowhead: false,
-        };
-        tempElementRef.current = el;
+          ...(state.activeTool === "c4-relationship" ? { label: "" } : {}),
+        } as LineElement | C4RelationshipElement;
+        tempElementRef.current = el as DrawElement;
       } else if (state.activeTool === "freehand" || state.activeTool === "highlight") {
         const el: FreehandElement = {
           id: generateId(),
@@ -364,7 +397,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       const start = state.drawStart;
       if (!start) return;
 
-      if (tempElementRef.current.type === "rectangle" || tempElementRef.current.type === "ellipse" || tempElementRef.current.type === "diamond" || tempElementRef.current.type === "note") {
+      if (tempElementRef.current.type === "rectangle" || tempElementRef.current.type === "ellipse" || tempElementRef.current.type === "diamond" || tempElementRef.current.type === "note" || (tempElementRef.current.type.startsWith("c4-") && tempElementRef.current.type !== "c4-relationship")) {
         let x = start.x;
         let y = start.y;
         let w = point.x - start.x;
@@ -391,7 +424,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           width: Math.abs(w),
           height: Math.abs(h),
         } as ShapeElement;
-      } else if (tempElementRef.current.type === "line" || tempElementRef.current.type === "arrow") {
+      } else if (tempElementRef.current.type === "line" || tempElementRef.current.type === "arrow" || tempElementRef.current.type === "c4-relationship") {
         let dx = point.x - start.x;
         let dy = point.y - start.y;
 
@@ -474,7 +507,9 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         shouldAdd = el.width > 2 || el.height > 2;
       } else if (el.type === "note") {
         shouldAdd = el.width > 5 || el.height > 5;
-      } else if (el.type === "line" || el.type === "arrow") {
+      } else if (el.type.startsWith("c4-") && el.type !== "c4-relationship") {
+        shouldAdd = el.width > 5 || el.height > 5;
+      } else if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship") {
         const pts = (el as LineElement).points;
         const last = pts[pts.length - 1];
         shouldAdd = Math.abs(last[0]) > 2 || Math.abs(last[1]) > 2;
@@ -490,6 +525,20 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           const rect = canvasRef.current?.getBoundingClientRect();
           if (rect) {
             state.setShowTextInput({
+              x: el.x,
+              y: el.y,
+              screenX: el.x * state.viewTransform.zoom + state.viewTransform.x + rect.left,
+              screenY: el.y * state.viewTransform.zoom + state.viewTransform.y + rect.top,
+              editId: el.id,
+            });
+          }
+        }
+
+        // Show C4 label input for new C4 elements
+        if (el.type.startsWith("c4-")) {
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (rect) {
+            state.setShowC4LabelInput({
               x: el.x,
               y: el.y,
               screenX: el.x * state.viewTransform.zoom + state.viewTransform.x + rect.left,

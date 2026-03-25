@@ -6,7 +6,7 @@ import { measureText, pointInElement } from "../utils/geometry";
 import { parseMermaidCode, renderMermaidDiagram } from "../utils/mermaid";
 import { DEFAULT_FONT_FAMILY, NOTE_PADDING_X, NOTE_PADDING_Y } from "../utils/constants";
 import { generateId, generateSeed } from "../utils/ids";
-import type { MermaidElement, NoteElement } from "../types";
+import type { MermaidElement, NoteElement, C4Element } from "../types";
 import ZoomControls from "./ZoomControls";
 import Minimap from "./Minimap";
 
@@ -22,8 +22,10 @@ export default function Canvas() {
   const theme = useAppStore((s) => s.theme);
   const showTextInput = useAppStore((s) => s.showTextInput);
   const showMermaidInput = useAppStore((s) => s.showMermaidInput);
+  const showC4LabelInput = useAppStore((s) => s.showC4LabelInput);
   const setShowTextInput = useAppStore((s) => s.setShowTextInput);
   const setShowMermaidInput = useAppStore((s) => s.setShowMermaidInput);
+  const setShowC4LabelInput = useAppStore((s) => s.setShowC4LabelInput);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   const { tempElementRef, selectionBoxRef } = useCanvasEvents(canvasRef);
@@ -111,6 +113,14 @@ export default function Canvas() {
       text: "text",
       note: "crosshair",
       mermaid: "crosshair",
+      "c4-person": "crosshair",
+      "c4-software-system": "crosshair",
+      "c4-container": "crosshair",
+      "c4-component": "crosshair",
+      "c4-database": "crosshair",
+      "c4-system-boundary": "crosshair",
+      "c4-enterprise-boundary": "crosshair",
+      "c4-relationship": "crosshair",
     };
 
     canvas.style.cursor = cursors[activeTool] || "default";
@@ -275,6 +285,16 @@ export default function Canvas() {
           });
           return;
         }
+        if (el.type.startsWith("c4-") && pointInElement(x, y, el)) {
+          state.setShowC4LabelInput({
+            x: el.x,
+            y: el.y,
+            screenX: e.clientX,
+            screenY: e.clientY,
+            editId: el.id,
+          });
+          return;
+        }
       }
     },
     []
@@ -310,6 +330,20 @@ export default function Canvas() {
           }
           onSubmit={(code) => handleMermaidInputSubmit(code, showMermaidInput.editId)}
           onCancel={() => setShowMermaidInput(null)}
+        />
+      )}
+      {showC4LabelInput && (
+        <C4LabelInputOverlay
+          x={showC4LabelInput.screenX}
+          y={showC4LabelInput.screenY}
+          editId={showC4LabelInput.editId}
+          onSubmit={(data) => {
+            if (showC4LabelInput.editId) {
+              useAppStore.getState().updateElement(showC4LabelInput.editId, data as any);
+            }
+            setShowC4LabelInput(null);
+          }}
+          onCancel={() => setShowC4LabelInput(null)}
         />
       )}
 
@@ -433,6 +467,117 @@ function MermaidInputOverlay({
           Cancel
         </button>
         <span className="mermaid-input-hint">Ctrl+Enter to render</span>
+      </div>
+    </div>
+  );
+}
+
+function C4LabelInputOverlay({
+  x,
+  y,
+  editId,
+  onSubmit,
+  onCancel,
+}: {
+  x: number;
+  y: number;
+  editId?: string;
+  onSubmit: (data: { label: string; description: string; technology: string }) => void;
+  onCancel: () => void;
+}) {
+  const existing = editId
+    ? (useAppStore.getState().elements.find((e) => e.id === editId) as C4Element | undefined)
+    : undefined;
+
+  const labelRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLInputElement>(null);
+  const techRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      labelRef.current?.focus();
+    });
+  }, []);
+
+  return (
+    <div className="c4-label-input-overlay" style={{ left: x, top: y }}>
+      <div className="c4-label-input-header">C4 Element Properties</div>
+      <div className="c4-label-input-body">
+        <label className="c4-label-input-field">
+          <span>Label</span>
+          <input
+            ref={labelRef}
+            type="text"
+            defaultValue={existing?.label || ""}
+            placeholder="Element name"
+            className="c4-label-input"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                descRef.current?.focus();
+              }
+            }}
+          />
+        </label>
+        <label className="c4-label-input-field">
+          <span>Description</span>
+          <input
+            ref={descRef}
+            type="text"
+            defaultValue={existing?.description || ""}
+            placeholder="Description"
+            className="c4-label-input"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                techRef.current?.focus();
+              }
+            }}
+          />
+        </label>
+        <label className="c4-label-input-field">
+          <span>Technology</span>
+          <input
+            ref={techRef}
+            type="text"
+            defaultValue={existing?.technology || ""}
+            placeholder="e.g. Java, React, PostgreSQL"
+            className="c4-label-input"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onSubmit({
+                  label: labelRef.current?.value || "",
+                  description: descRef.current?.value || "",
+                  technology: techRef.current?.value || "",
+                });
+              }
+            }}
+          />
+        </label>
+      </div>
+      <div className="c4-label-input-footer">
+        <button
+          className="mermaid-input-btn"
+          onClick={() =>
+            onSubmit({
+              label: labelRef.current?.value || "",
+              description: descRef.current?.value || "",
+              technology: techRef.current?.value || "",
+            })
+          }
+        >
+          Save
+        </button>
+        <button
+          className="mermaid-input-btn mermaid-input-btn-cancel"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
