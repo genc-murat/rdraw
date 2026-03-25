@@ -67,7 +67,7 @@ export default function PropertiesPanel() {
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest("button")) return;
+      if ((e.target as HTMLElement).closest("button, input, select, textarea, .color-swatch, .color-picker-popover")) return;
       e.preventDefault();
       dragRef.current = {
         offsetX: e.clientX - panelPosition.x,
