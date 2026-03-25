@@ -47,6 +47,8 @@ const useAppStore = create<Store>((set, get) => ({
   showMermaidInput: null,
   showC4LabelInput: null,
   showGrid: true,
+  toolbarOrientation: "horizontal" as "horizontal" | "vertical",
+  toolbarPosition: { x: 80, y: 4 },
   theme: "dark" as "dark" | "light",
   pages: [{ id: "page-default", name: "Page 1", elements: [] }],
   activePageId: "page-default",
@@ -349,6 +351,8 @@ const useAppStore = create<Store>((set, get) => ({
   setDrawStart: (start) => set({ drawStart: start }),
   setShowGrid: (show) => set({ showGrid: show }),
   toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+  toggleToolbarOrientation: () => set((state) => ({ toolbarOrientation: state.toolbarOrientation === "horizontal" ? "vertical" : "horizontal" })),
+  setToolbarPosition: (pos) => set({ toolbarPosition: pos }),
   setTheme: (theme) => {
     document.body.classList.toggle("light-theme", theme === "light");
     set({ theme });

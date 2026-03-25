@@ -13,8 +13,8 @@ export default function App() {
   return (
     <div className="app-container">
       <MenuBar />
-      <Toolbar />
       <div className="main-area">
+        <Toolbar />
         <Canvas />
         <button
           className="panel-toggle-btn"

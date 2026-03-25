@@ -166,6 +166,8 @@ export interface AppState {
   showMermaidInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showC4LabelInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showGrid: boolean;
+  toolbarOrientation: "horizontal" | "vertical";
+  toolbarPosition: { x: number; y: number };
   theme: "dark" | "light";
   pages: Page[];
   activePageId: string;
@@ -212,6 +214,8 @@ export interface AppActions {
   setDrawStart: (start: { x: number; y: number } | null) => void;
   setShowGrid: (show: boolean) => void;
   toggleGrid: () => void;
+  toggleToolbarOrientation: () => void;
+  setToolbarPosition: (pos: { x: number; y: number }) => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
   createPage: (name?: string) => void;
