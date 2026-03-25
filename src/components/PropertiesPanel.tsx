@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import useAppStore from "../store/useAppStore";
 import type { FillStyle, StrokeStyle, ArrowheadStyle } from "../types";
 import ColorPicker from "./ColorPicker";
@@ -31,7 +32,7 @@ function ArrowheadStyleSelect({
   );
 }
 
-export default function PropertiesPanel({ open = true }: { open?: boolean }) {
+export default function PropertiesPanel() {
   const strokeColor = useAppStore((s) => s.strokeColor);
   const fillColor = useAppStore((s) => s.fillColor);
   const fillStyle = useAppStore((s) => s.fillStyle);
@@ -45,6 +46,8 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const endArrowheadStyle = useAppStore((s) => s.endArrowheadStyle);
   const startArrowheadStyle = useAppStore((s) => s.startArrowheadStyle);
   const connectorRouting = useAppStore((s) => s.connectorRouting);
+  const panelPosition = useAppStore((s) => s.panelPosition);
+  const togglePanel = useAppStore((s) => s.togglePanel);
 
   const setStrokeColor = useAppStore((s) => s.setStrokeColor);
   const setFillColor = useAppStore((s) => s.setFillColor);
@@ -58,9 +61,55 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const setEndArrowheadStyle = useAppStore((s) => s.setEndArrowheadStyle);
   const setStartArrowheadStyle = useAppStore((s) => s.setStartArrowheadStyle);
   const setConnectorRouting = useAppStore((s) => s.setConnectorRouting);
+  const setPanelPosition = useAppStore((s) => s.setPanelPosition);
+
+  const dragRef = useRef<{ offsetX: number; offsetY: number } | null>(null);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest("button")) return;
+      e.preventDefault();
+      dragRef.current = {
+        offsetX: e.clientX - panelPosition.x,
+        offsetY: e.clientY - panelPosition.y,
+      };
+
+      const panel = e.currentTarget as HTMLElement;
+      panel.classList.add("dragging");
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        if (!dragRef.current) return;
+        setPanelPosition({
+          x: ev.clientX - dragRef.current.offsetX,
+          y: ev.clientY - dragRef.current.offsetY,
+        });
+      };
+
+      const handleMouseUp = () => {
+        dragRef.current = null;
+        panel.classList.remove("dragging");
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [panelPosition, setPanelPosition]
+  );
 
   return (
-    <div className={`properties-panel${open ? "" : " properties-panel-closed"}`}>
+    <div
+      className="properties-panel"
+      style={{ left: panelPosition.x, top: panelPosition.y }}
+      onMouseDown={handleMouseDown}
+    >
+      <div className="properties-panel-header">
+        <h2>Properties</h2>
+        <button className="panel-close-btn" onClick={togglePanel} title="Close">
+          {"\u2715"}
+        </button>
+      </div>
       {activeTool === "highlight" && (
         <div className="prop-group">
           <h3>Highlight Color</h3>

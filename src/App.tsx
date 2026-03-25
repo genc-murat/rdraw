@@ -1,4 +1,3 @@
-import { useState } from "react";
 import MenuBar from "./components/MenuBar";
 import Toolbar from "./components/Toolbar";
 import Canvas from "./components/Canvas";
@@ -6,11 +5,13 @@ import PropertiesPanel from "./components/PropertiesPanel";
 import PageTabs from "./components/PageTabs";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAutoSave } from "./hooks/useAutoSave";
+import useAppStore from "./store/useAppStore";
 
 export default function App() {
   useKeyboardShortcuts();
   useAutoSave();
-  const [panelOpen, setPanelOpen] = useState(false);
+  const panelOpen = useAppStore((s) => s.panelOpen);
+  const togglePanel = useAppStore((s) => s.togglePanel);
 
   return (
     <div className="app-container">
@@ -20,12 +21,12 @@ export default function App() {
         <Canvas />
         <button
           className="panel-toggle-btn"
-          onClick={() => setPanelOpen((v) => !v)}
+          onClick={togglePanel}
           title={panelOpen ? "Hide properties" : "Show properties"}
         >
-          {panelOpen ? "›" : "‹"}
+          {panelOpen ? "\u203A" : "\u2039"}
         </button>
-        <PropertiesPanel open={panelOpen} />
+        {panelOpen && <PropertiesPanel />}
       </div>
       <PageTabs />
     </div>

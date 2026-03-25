@@ -195,6 +195,8 @@ export interface AppState {
   showGrid: boolean;
   toolbarOrientation: "horizontal" | "vertical";
   toolbarPosition: { x: number; y: number };
+  panelOpen: boolean;
+  panelPosition: { x: number; y: number };
   theme: "dark" | "light";
   pages: Page[];
   activePageId: string;
@@ -247,6 +249,8 @@ export interface AppActions {
   toggleGrid: () => void;
   toggleToolbarOrientation: () => void;
   setToolbarPosition: (pos: { x: number; y: number }) => void;
+  togglePanel: () => void;
+  setPanelPosition: (pos: { x: number; y: number }) => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
   createPage: (name?: string) => void;

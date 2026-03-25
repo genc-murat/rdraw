@@ -13,6 +13,8 @@ export interface ViewState {
   showGrid: boolean;
   toolbarOrientation: "horizontal" | "vertical";
   toolbarPosition: { x: number; y: number };
+  panelOpen: boolean;
+  panelPosition: { x: number; y: number };
   theme: "dark" | "light";
 }
 
@@ -30,6 +32,8 @@ export interface ViewActions {
   toggleGrid: () => void;
   toggleToolbarOrientation: () => void;
   setToolbarPosition: (pos: { x: number; y: number }) => void;
+  togglePanel: () => void;
+  setPanelPosition: (pos: { x: number; y: number }) => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
 }
@@ -46,6 +50,8 @@ export const initialViewState: ViewState = {
   showGrid: true,
   toolbarOrientation: "horizontal",
   toolbarPosition: { x: 80, y: 4 },
+  panelOpen: false,
+  panelPosition: { x: typeof window !== "undefined" ? window.innerWidth - 252 : 800, y: 12 },
   theme: "dark",
 };
 
@@ -76,6 +82,9 @@ export const createViewSlice: StoreCreator<ViewState & ViewActions> = (set) => (
   })),
 
   setToolbarPosition: (pos) => set({ toolbarPosition: pos }),
+
+  togglePanel: () => set((state: any) => ({ panelOpen: !state.panelOpen })),
+  setPanelPosition: (pos) => set({ panelPosition: pos }),
 
   setTheme: (theme) => {
     document.body.classList.toggle("light-theme", theme === "light");
