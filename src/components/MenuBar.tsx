@@ -39,6 +39,8 @@ export default function MenuBar() {
   const toggleGrid = useAppStore((s) => s.toggleGrid);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const group = useAppStore((s) => s.group);
+  const ungroup = useAppStore((s) => s.ungroup);
 
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -156,6 +158,9 @@ export default function MenuBar() {
         { label: "Duplicate", shortcut: "Ctrl+D", action: () => { duplicate(); closeSidebar(); } },
         { separator: true },
         { label: "Select All", shortcut: "Ctrl+A", action: () => { selectAll(); closeSidebar(); } },
+        { separator: true },
+        { label: "Group", shortcut: "Ctrl+G", action: () => { group(); closeSidebar(); } },
+        { label: "Ungroup", shortcut: "Ctrl+Shift+G", action: () => { ungroup(); closeSidebar(); } },
       ],
     },
     {

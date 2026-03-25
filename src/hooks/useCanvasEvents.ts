@@ -3,6 +3,8 @@ import useAppStore from "../store/useAppStore";
 import { generateId, generateSeed } from "../utils/ids";
 import { screenToCanvas, pointInElement, getResizeHandle, getElementBounds, getNoteCloneHandle } from "../utils/geometry";
 import { DEFAULT_NOTE_FONT_SIZE, DEFAULT_FONT_FAMILY, C4_COLORS, C4_DEFAULT_WIDTH, C4_DEFAULT_HEIGHT, C4_BOUNDARY_DEFAULT_WIDTH, C4_BOUNDARY_DEFAULT_HEIGHT } from "../utils/constants";
+import { computeSnap } from "../utils/snap";
+import { findAnchorAtPoint, getBestAnchor, getAnchorPosition, updateConnectorPoints } from "../utils/connectors";
 import type { DrawElement, ShapeElement, LineElement, FreehandElement, NoteElement, C4Element, C4RelationshipElement, C4Type } from "../types";
 
 const CLAMP_COORDINATE = 1e7;
@@ -24,6 +26,13 @@ export interface SelectionBox {
   height: number;
 }
 
+export interface GuideLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   const store = useAppStore;
   const tempElementRef = useRef<DrawElement | null>(null);
@@ -32,6 +41,8 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
   const dragStartRef = useRef<{ x: number; y: number; elements: { id: string; x: number; y: number }[] } | null>(null);
   const selectionBoxRef = useRef<SelectionBox | null>(null);
   const selectionBoxStartRef = useRef<{ x: number; y: number } | null>(null);
+  const guideLinesRef = useRef<GuideLine[]>([]);
+  const anchorHitRef = useRef<{ elementId: string; anchor: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.code === "Space") spaceDownRef.current = true; };
@@ -270,11 +281,27 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         tempElementRef.current = el;
       } else if (state.activeTool === "line" || state.activeTool === "arrow" || state.activeTool === "c4-relationship") {
         const c4Colors = state.activeTool === "c4-relationship" ? C4_COLORS["c4-relationship"] : null;
+
+        // Check for start anchor
+        const startAnchorHit = findAnchorAtPoint(point.x, point.y, state.elements, null, state.viewTransform.zoom);
+        let startX = point.x;
+        let startY = point.y;
+        let startElementId: string | undefined;
+        let startAnchor: string | undefined;
+
+        if (startAnchorHit) {
+          startX = startAnchorHit.x;
+          startY = startAnchorHit.y;
+          startElementId = startAnchorHit.elementId;
+          startAnchor = startAnchorHit.anchor;
+          anchorHitRef.current = startAnchorHit;
+        }
+
         const el: LineElement | C4RelationshipElement = {
           id: generateId(),
           type: state.activeTool,
-          x: point.x,
-          y: point.y,
+          x: startX,
+          y: startY,
           width: 0,
           height: 0,
           strokeColor: c4Colors ? c4Colors.stroke : state.strokeColor,
@@ -290,6 +317,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           endArrowhead: true,
           startArrowhead: false,
           ...(state.activeTool === "c4-relationship" ? { label: "" } : {}),
+          ...(startElementId ? { startElementId, startAnchor } : {}),
         } as LineElement | C4RelationshipElement;
         tempElementRef.current = el as DrawElement;
       } else if (state.activeTool === "freehand" || state.activeTool === "highlight") {
@@ -370,14 +398,63 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           width: newW,
           height: newH,
         } as any);
+
+        // Update connected arrows
+        const resizedId = state.selectedIds[0];
+        for (const el of state.elements) {
+          if ((el.type === "arrow" || el.type === "line" || el.type === "c4-relationship") &&
+              ((el as LineElement).startElementId === resizedId ||
+               (el as LineElement).endElementId === resizedId)) {
+            const updates = updateConnectorPoints(el as LineElement, state.elements);
+            if (updates) {
+              state.updateElement(el.id, updates as any);
+            }
+          }
+        }
         return;
       }
 
       if (dragStartRef.current) {
         const dx = point.x - dragStartRef.current.x;
         const dy = point.y - dragStartRef.current.y;
+
+        // Compute snap for the first selected element (or combined bounds)
+        const firstOrig = dragStartRef.current.elements[0];
+        let snapDx = 0;
+        let snapDy: number = 0;
+        if (firstOrig && dragStartRef.current.elements.length > 0) {
+          const firstEl = state.elements.find((e) => e.id === firstOrig.id);
+          if (firstEl) {
+            const origBounds = getElementBounds(firstEl);
+            const movedBounds = {
+              x: origBounds.x + dx,
+              y: origBounds.y + dy,
+              width: origBounds.width,
+              height: origBounds.height,
+            };
+            const excludeIds = new Set(dragStartRef.current.elements.map((e) => e.id));
+            const snap = computeSnap(movedBounds, state.elements, excludeIds, state.viewTransform.zoom);
+            guideLinesRef.current = snap.guides;
+            snapDx = snap.dx;
+            snapDy = snap.dy;
+          }
+        }
+
         for (const { id, x, y } of dragStartRef.current.elements) {
-          state.updateElement(id, { x: x + dx, y: y + dy } as any);
+          state.updateElement(id, { x: x + dx + snapDx, y: y + dy + snapDy } as any);
+        }
+
+        // Update connected arrows for all moved elements
+        const movedIds = new Set(dragStartRef.current.elements.map((e) => e.id));
+        for (const el of state.elements) {
+          if ((el.type === "arrow" || el.type === "line" || el.type === "c4-relationship") &&
+              ((el as LineElement).startElementId && movedIds.has((el as LineElement).startElementId!) ||
+               (el as LineElement).endElementId && movedIds.has((el as LineElement).endElementId!))) {
+            const updates = updateConnectorPoints(el as LineElement, state.elements);
+            if (updates) {
+              state.updateElement(el.id, updates as any);
+            }
+          }
         }
         return;
       }
@@ -436,6 +513,18 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           dy = Math.sin(snappedAngle) * len;
         }
 
+        // Check for anchor snap at the end point
+        const endAbsX = start.x + dx;
+        const endAbsY = start.y + dy;
+        const anchorHit = findAnchorAtPoint(endAbsX, endAbsY, state.elements, tempElementRef.current.id, state.viewTransform.zoom);
+        if (anchorHit) {
+          anchorHitRef.current = anchorHit;
+          dx = anchorHit.x - start.x;
+          dy = anchorHit.y - start.y;
+        } else {
+          anchorHitRef.current = null;
+        }
+
         const el = tempElementRef.current as LineElement;
         tempElementRef.current = {
           ...el,
@@ -473,6 +562,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
 
       if (dragStartRef.current) {
         dragStartRef.current = null;
+        guideLinesRef.current = [];
         return;
       }
 
@@ -491,7 +581,17 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
               selectedIds.push(el.id);
             }
           }
-          useAppStore.setState({ selectedIds });
+          // Expand selection to include all group members
+          const expandedIds = new Set(selectedIds);
+          for (const id of selectedIds) {
+            const el = state.elements.find((e) => e.id === id);
+            if (el?.groupId) {
+              for (const other of state.elements) {
+                if (other.groupId === el.groupId) expandedIds.add(other.id);
+              }
+            }
+          }
+          useAppStore.setState({ selectedIds: [...expandedIds] });
         }
         selectionBoxStartRef.current = null;
         selectionBoxRef.current = null;
@@ -518,6 +618,14 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       }
 
       if (shouldAdd) {
+        // Set end anchor if we had a hit during drawing
+        if (anchorHitRef.current && (el.type === "arrow" || el.type === "line" || el.type === "c4-relationship")) {
+          const hit = anchorHitRef.current;
+          (el as any).endElementId = hit.elementId;
+          (el as any).endAnchor = hit.anchor;
+        }
+        anchorHitRef.current = null;
+
         state.addElement(el);
 
         // Show text input for new note elements
@@ -595,5 +703,5 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
     };
   }, [canvasRef, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel]);
 
-  return { tempElementRef, selectionBoxRef };
+  return { tempElementRef, selectionBoxRef, guideLinesRef };
 }

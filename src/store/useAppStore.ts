@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { DrawElement, Tool, FillStyle, StrokeStyle, AppState, AppActions } from "../types";
-import { generateId, generateSeed, generatePageId } from "../utils/ids";
+import { generateId, generateSeed, generatePageId, generateGroupId } from "../utils/ids";
 import { measureText } from "../utils/geometry";
 import {
   DEFAULT_STROKE_COLOR,
@@ -99,19 +99,49 @@ const useAppStore = create<Store>((set, get) => ({
     })),
 
   removeElements: (ids) =>
-    set((state) => ({
-      elements: state.elements.filter((el) => !ids.includes(el.id)),
-      selectedIds: [],
-    })),
+    set((state) => {
+      const idSet = new Set(ids);
+      const elements = state.elements
+        .filter((el) => !idSet.has(el.id))
+        .map((el) => {
+          if (el.type === "arrow" || el.type === "line" || el.type === "c4-relationship") {
+            const lineEl = el as any;
+            const updates: any = {};
+            if (lineEl.startElementId && idSet.has(lineEl.startElementId)) {
+              updates.startElementId = undefined;
+              updates.startAnchor = undefined;
+            }
+            if (lineEl.endElementId && idSet.has(lineEl.endElementId)) {
+              updates.endElementId = undefined;
+              updates.endAnchor = undefined;
+            }
+            if (Object.keys(updates).length > 0) {
+              return { ...el, ...updates };
+            }
+          }
+          return el;
+        });
+      return { elements, selectedIds: [] };
+    }),
 
   selectElement: (id, multi) =>
-    set((state) => ({
-      selectedIds: multi
-        ? state.selectedIds.includes(id)
-          ? state.selectedIds.filter((sid) => sid !== id)
-          : [...state.selectedIds, id]
-        : [id],
-    })),
+    set((state) => {
+      if (multi) {
+        return {
+          selectedIds: state.selectedIds.includes(id)
+            ? state.selectedIds.filter((sid) => sid !== id)
+            : [...state.selectedIds, id],
+        };
+      }
+      const el = state.elements.find((e) => e.id === id);
+      if (el?.groupId) {
+        const groupIds = state.elements
+          .filter((e) => e.groupId === el.groupId)
+          .map((e) => e.id);
+        return { selectedIds: groupIds };
+      }
+      return { selectedIds: [id] };
+    }),
 
   clearSelection: () => set({ selectedIds: [] }),
 
@@ -183,12 +213,16 @@ const useAppStore = create<Store>((set, get) => ({
     set((state) => {
       if (state.clipboard.length === 0) return state;
       const offset = 20;
+      // Check if clipboard elements share a group
+      const clipGroupIds = new Set(state.clipboard.map((el) => el.groupId).filter(Boolean));
+      const newGroupId = clipGroupIds.size === 1 ? generateGroupId() : undefined;
       const newElements = state.clipboard.map((el) => ({
         ...el,
         id: generateId(),
         x: el.x + offset,
         y: el.y + offset,
         seed: generateSeed(),
+        groupId: el.groupId ? newGroupId : undefined,
       }));
       return {
         elements: [...state.elements, ...newElements],
@@ -203,12 +237,16 @@ const useAppStore = create<Store>((set, get) => ({
       state.selectedIds.includes(el.id)
     );
     const offset = 20;
+    // Check if selected elements share a group
+    const selGroupIds = new Set(selected.map((el) => el.groupId).filter(Boolean));
+    const newGroupId = selGroupIds.size === 1 ? generateGroupId() : undefined;
     const newElements = selected.map((el) => ({
       ...el,
       id: generateId(),
       x: el.x + offset,
       y: el.y + offset,
       seed: generateSeed(),
+      groupId: el.groupId ? newGroupId : undefined,
     }));
     set((s) => ({
       elements: [...s.elements, ...newElements],
@@ -478,6 +516,34 @@ const useAppStore = create<Store>((set, get) => ({
       pages.splice(toIndex, 0, moved);
       return { pages };
     }),
+
+  group: () => {
+    const state = get();
+    if (state.selectedIds.length < 2) return;
+    const groupId = generateGroupId();
+    state.pushHistory();
+    set((s) => ({
+      elements: s.elements.map((el) =>
+        s.selectedIds.includes(el.id) ? { ...el, groupId } : el
+      ),
+    }));
+  },
+
+  ungroup: () => {
+    const state = get();
+    const groupIds = new Set<string>();
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el?.groupId) groupIds.add(el.groupId);
+    }
+    if (groupIds.size === 0) return;
+    state.pushHistory();
+    set((s) => ({
+      elements: s.elements.map((el) =>
+        el.groupId && groupIds.has(el.groupId) ? { ...el, groupId: undefined } : el
+      ),
+    }));
+  },
 }));
 
 export default useAppStore;

@@ -28,7 +28,7 @@ export default function Canvas() {
   const setShowC4LabelInput = useAppStore((s) => s.setShowC4LabelInput);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
-  const { tempElementRef, selectionBoxRef } = useCanvasEvents(canvasRef);
+  const { tempElementRef, selectionBoxRef, guideLinesRef } = useCanvasEvents(canvasRef);
 
   // Resize canvas
   useEffect(() => {
@@ -75,7 +75,8 @@ export default function Canvas() {
           ? [...elements, tempElementRef.current]
           : elements;
 
-        renderElements(ctx, allElements, selectedIds, viewTransform, showGrid, theme);
+        const showAnchors = activeTool === "arrow" || activeTool === "line" || activeTool === "c4-relationship";
+        renderElements(ctx, allElements, selectedIds, viewTransform, showGrid, theme, guideLinesRef.current, showAnchors);
 
         const box = selectionBoxRef.current;
         if (box && (box.width > 0 || box.height > 0)) {
@@ -94,7 +95,7 @@ export default function Canvas() {
       running = false;
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [elements, selectedIds, viewTransform, isDrawing, showGrid, theme, tempElementRef, selectionBoxRef]);
+  }, [elements, selectedIds, viewTransform, isDrawing, showGrid, theme, tempElementRef, selectionBoxRef, guideLinesRef, activeTool]);
 
   // Cursor
   useEffect(() => {

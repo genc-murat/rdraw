@@ -12,3 +12,7 @@ export function generateSeed(): number {
 export function generatePageId(): string {
   return "page-" + generateId();
 }
+
+export function generateGroupId(): string {
+  return "grp-" + generateId();
+}

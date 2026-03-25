@@ -17,6 +17,8 @@ export function useKeyboardShortcuts() {
     sendToBack,
     resetView,
     createPage,
+    group,
+    ungroup,
   } = useAppStore();
 
   const handleKeyDown = useCallback(
@@ -52,6 +54,12 @@ export function useKeyboardShortcuts() {
       } else if (ctrl && e.key === "a") {
         e.preventDefault();
         selectAll();
+      } else if (ctrl && e.shiftKey && (e.key === "G" || e.key === "g")) {
+        e.preventDefault();
+        ungroup();
+      } else if (ctrl && (e.key === "g" || e.key === "G")) {
+        e.preventDefault();
+        group();
       } else if (ctrl && e.key === "0") {
         e.preventDefault();
         resetView();
@@ -108,7 +116,7 @@ export function useKeyboardShortcuts() {
         bringToFront();
       }
     },
-    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage]
+    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage, group, ungroup]
   );
 
   useEffect(() => {

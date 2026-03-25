@@ -2,7 +2,8 @@ import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
 import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, NoteElement, MermaidElement, C4Element, C4RelationshipElement } from "../types";
 import { getElementBounds } from "./geometry";
-import { NOTE_FOLD_SIZE, C4_FONT_SIZE, C4_DESC_FONT_SIZE, C4_TECH_FONT_SIZE } from "./constants";
+import { getAnchorPoints } from "./connectors";
+import { NOTE_FOLD_SIZE, C4_FONT_SIZE, C4_DESC_FONT_SIZE, C4_TECH_FONT_SIZE, SNAP_GUIDE_COLOR } from "./constants";
 
 const CULL_PADDING = 50;
 
@@ -41,13 +42,22 @@ function boundsIntersect(
   );
 }
 
+export interface GuideLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 export function renderElements(
   ctx: CanvasRenderingContext2D,
   elements: DrawElement[],
   selectedIds: string[],
   viewTransform: { x: number; y: number; zoom: number },
   showGrid: boolean = true,
-  theme: "dark" | "light" = "dark"
+  theme: "dark" | "light" = "dark",
+  guideLines?: GuideLine[],
+  showAnchors: boolean = false
 ): void {
   const dpr = window.devicePixelRatio || 1;
   const canvas = ctx.canvas;
@@ -114,6 +124,14 @@ export function renderElements(
   for (const id of selectedIds) {
     const el = elements.find((e) => e.id === id);
     if (el) drawSelectionHandles(ctx, el, viewTransform.zoom);
+  }
+
+  if (guideLines && guideLines.length > 0) {
+    drawGuideLines(ctx, guideLines, viewTransform.zoom);
+  }
+
+  if (showAnchors) {
+    drawAnchorPoints(ctx, elements, viewTransform.zoom);
   }
 
   ctx.restore();
@@ -790,6 +808,48 @@ function renderC4Relationship(
     ctx.fillText(el.label, mx, my - 4, Math.abs(end[0] - start[0]) - 20);
     ctx.restore();
   }
+}
+
+function drawAnchorPoints(
+  ctx: CanvasRenderingContext2D,
+  elements: DrawElement[],
+  zoom: number
+): void {
+  const radius = 4 / zoom;
+  ctx.save();
+  for (const el of elements) {
+    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand") continue;
+    const anchors = getAnchorPoints(el);
+    for (const a of anchors) {
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#0078d4";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawGuideLines(
+  ctx: CanvasRenderingContext2D,
+  guides: { x1: number; y1: number; x2: number; y2: number }[],
+  zoom: number
+): void {
+  ctx.save();
+  ctx.strokeStyle = SNAP_GUIDE_COLOR;
+  ctx.lineWidth = 1 / zoom;
+  ctx.setLineDash([4 / zoom, 4 / zoom]);
+  for (const g of guides) {
+    ctx.beginPath();
+    ctx.moveTo(g.x1, g.y1);
+    ctx.lineTo(g.x2, g.y2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
 }
 
 function drawSelectionHandles(

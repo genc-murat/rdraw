@@ -39,6 +39,7 @@ export interface DrawElementBase {
   opacity: number;
   rotation: number;
   seed: number;
+  groupId?: string;
 }
 
 export interface ShapeElement extends DrawElementBase {
@@ -50,6 +51,10 @@ export interface LineElement extends DrawElementBase {
   points: [number, number][];
   endArrowhead: boolean;
   startArrowhead: boolean;
+  startElementId?: string;
+  endElementId?: string;
+  startAnchor?: "top" | "right" | "bottom" | "left" | "center";
+  endAnchor?: "top" | "right" | "bottom" | "left" | "center";
 }
 
 export interface FreehandElement extends DrawElementBase {
@@ -117,6 +122,10 @@ export interface C4RelationshipElement extends DrawElementBase {
   endArrowhead: boolean;
   startArrowhead: boolean;
   label: string;
+  startElementId?: string;
+  endElementId?: string;
+  startAnchor?: "top" | "right" | "bottom" | "left" | "center";
+  endAnchor?: "top" | "right" | "bottom" | "left" | "center";
 }
 
 export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | NoteElement | MermaidElement | C4Element | C4RelationshipElement;
@@ -224,4 +233,6 @@ export interface AppActions {
   duplicatePage: (id: string) => void;
   reorderPage: (fromIndex: number, toIndex: number) => void;
   switchPage: (id: string) => void;
+  group: () => void;
+  ungroup: () => void;
 }

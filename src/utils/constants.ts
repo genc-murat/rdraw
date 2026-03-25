@@ -54,3 +54,7 @@ export const C4_BOUNDARY_DEFAULT_HEIGHT = 300;
 export const C4_FONT_SIZE = 12;
 export const C4_DESC_FONT_SIZE = 10;
 export const C4_TECH_FONT_SIZE = 9;
+
+export const GRID_SIZE = 20;
+export const SNAP_THRESHOLD = 5;
+export const SNAP_GUIDE_COLOR = "rgba(255, 0, 255, 0.5)";
