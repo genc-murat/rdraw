@@ -9,6 +9,7 @@ export type Tool =
   | "freehand"
   | "highlight"
   | "text"
+  | "note"
   | "mermaid";
 
 export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none";
@@ -55,6 +56,13 @@ export interface TextElement extends DrawElementBase {
   fontFamily: string;
 }
 
+export interface NoteElement extends DrawElementBase {
+  type: "note";
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+}
+
 export interface MermaidNode {
   x: number;
   y: number;
@@ -78,7 +86,7 @@ export interface MermaidElement extends DrawElementBase {
   originalHeight: number;
 }
 
-export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | MermaidElement;
+export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | NoteElement | MermaidElement;
 
 export interface Page {
   id: string;
@@ -121,7 +129,7 @@ export interface AppState {
   historyIndex: number;
   clipboard: DrawElement[];
   filePath: string | null;
-  showTextInput: { x: number; y: number; screenX: number; screenY: number } | null;
+  showTextInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showMermaidInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showGrid: boolean;
   theme: "dark" | "light";
@@ -161,7 +169,7 @@ export interface AppActions {
   setRoughness: (roughness: number) => void;
   setOpacity: (opacity: number) => void;
   setFontSize: (size: number) => void;
-  setShowTextInput: (pos: { x: number; y: number; screenX: number; screenY: number } | null) => void;
+  setShowTextInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setShowMermaidInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setIsDrawing: (drawing: boolean) => void;
   setIsPanning: (panning: boolean) => void;

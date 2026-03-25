@@ -12,6 +12,9 @@ import {
   DEFAULT_HIGHLIGHT_COLOR,
   DEFAULT_HIGHLIGHT_STROKE_WIDTH,
   DEFAULT_HIGHLIGHT_OPACITY,
+  DEFAULT_NOTE_COLOR,
+  DEFAULT_NOTE_TEXT_COLOR,
+  DEFAULT_NOTE_FONT_SIZE,
   HISTORY_LIMIT,
   MAX_PAGES,
 } from "../utils/constants";
@@ -53,6 +56,13 @@ const useAppStore = create<Store>((set, get) => ({
       updates.strokeColor = DEFAULT_HIGHLIGHT_COLOR;
       updates.strokeWidth = DEFAULT_HIGHLIGHT_STROKE_WIDTH;
       updates.opacity = DEFAULT_HIGHLIGHT_OPACITY;
+    } else if (tool === "note") {
+      updates.fillColor = DEFAULT_NOTE_COLOR;
+      updates.fillStyle = "solid";
+      updates.strokeColor = DEFAULT_NOTE_TEXT_COLOR;
+      updates.strokeWidth = DEFAULT_STROKE_WIDTH;
+      updates.opacity = DEFAULT_OPACITY;
+      updates.fontSize = DEFAULT_NOTE_FONT_SIZE;
     } else {
       updates.strokeColor = DEFAULT_STROKE_COLOR;
       updates.strokeWidth = DEFAULT_STROKE_WIDTH;
@@ -305,6 +315,18 @@ const useAppStore = create<Store>((set, get) => ({
           width: measured.width,
           height: measured.height,
         } as any);
+      } else if (el && el.type === "note") {
+        const noteEl = el as any;
+        if (noteEl.text) {
+          const measured = measureText(noteEl.text, size);
+          state.updateElement(id, {
+            fontSize: size,
+            width: measured.width + 32,
+            height: measured.height + 24,
+          } as any);
+        } else {
+          state.updateElement(id, { fontSize: size } as any);
+        }
       }
     }
   },

@@ -12,6 +12,7 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: "freehand", label: "Freehand (P)", icon: "✎" },
   { id: "highlight", label: "Highlight (G)", icon: "🖍" },
   { id: "text", label: "Text (T)", icon: "T" },
+  { id: "note", label: "Note (N)", icon: "📝" },
   { id: "mermaid", label: "Mermaid (M)", icon: "⌥" },
 ];
 

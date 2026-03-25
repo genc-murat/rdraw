@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
-import type { DrawElement, MermaidElement, Page } from "../types";
+import type { DrawElement, MermaidElement, NoteElement, Page } from "../types";
 
 export interface DrawingDataV1 {
   version: 1;
@@ -108,6 +108,22 @@ function generateSVG(elements: DrawElement[]): string {
       }
     } else if (el.type === "text") {
       svg += `<text x="${el.x}" y="${el.y + (el as any).fontSize}" fill="${el.strokeColor}" font-size="${(el as any).fontSize}px">${(el as any).text}</text>`;
+    } else if (el.type === "note") {
+      const nEl = el as NoteElement;
+      const noteFill = el.fillColor === "transparent" ? "#fff59d" : el.fillColor;
+      const foldSize = Math.min(20, el.width / 3, el.height / 3);
+      svg += `<rect x="${el.x}" y="${el.y}" width="${el.width}" height="${el.height}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" fill="${noteFill}" opacity="${el.opacity}" />`;
+      // Corner fold
+      const fx = el.x + el.width - foldSize;
+      const fy = el.y + el.height - foldSize;
+      svg += `<polygon points="${fx},${el.y + el.height} ${el.x + el.width},${fy} ${fx},${fy}" stroke="${el.strokeColor}" stroke-width="${el.strokeWidth}" fill="#e0e0e0" opacity="${el.opacity}" />`;
+      // Text content
+      if (nEl.text) {
+        const lines = nEl.text.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          svg += `<text x="${el.x + 12}" y="${el.y + 8 + nEl.fontSize + i * nEl.fontSize * 1.3}" fill="${el.strokeColor}" font-size="${nEl.fontSize}px">${escapeXml(lines[i])}</text>`;
+        }
+      }
     } else if (el.type === "mermaid") {
       const mEl = el as MermaidElement;
       const origW = mEl.originalWidth || mEl.width;
@@ -156,4 +172,13 @@ function generateSVG(elements: DrawElement[]): string {
 
   svg += `</svg>`;
   return svg;
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }

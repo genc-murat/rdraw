@@ -28,3 +28,10 @@ export const DEFAULT_HIGHLIGHT_OPACITY = 0.35;
 
 export const DEFAULT_PAGE_NAME = "Page 1";
 export const MAX_PAGES = 40;
+
+export const DEFAULT_NOTE_COLOR = "#fff59d";
+export const DEFAULT_NOTE_TEXT_COLOR = "#1e1e1e";
+export const DEFAULT_NOTE_FONT_SIZE = 16;
+export const NOTE_PADDING_X = 16;
+export const NOTE_PADDING_Y = 12;
+export const NOTE_FOLD_SIZE = 20;

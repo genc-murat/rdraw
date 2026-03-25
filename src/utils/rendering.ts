@@ -1,7 +1,8 @@
 import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, MermaidElement } from "../types";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, NoteElement, MermaidElement } from "../types";
 import { getElementBounds } from "./geometry";
+import { NOTE_FOLD_SIZE } from "./constants";
 
 const CULL_PADDING = 50;
 
@@ -97,6 +98,8 @@ export function renderElements(
       renderFreehand(ctx, el as FreehandElement);
     } else if (el.type === "text") {
       renderText(ctx, el as TextElement);
+    } else if (el.type === "note") {
+      renderNote(ctx, rc, el as NoteElement);
     } else if (el.type === "mermaid") {
       renderMermaid(ctx, rc, el as MermaidElement);
     }
@@ -296,6 +299,75 @@ function renderText(ctx: CanvasRenderingContext2D, el: TextElement): void {
   ctx.restore();
 }
 
+function renderNote(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: NoteElement
+): void {
+  const foldSize = Math.min(NOTE_FOLD_SIZE, el.width / 3, el.height / 3);
+
+  const options = {
+    seed: el.seed,
+    stroke: el.strokeColor,
+    strokeWidth: el.strokeWidth,
+    roughness: el.roughness,
+    fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+    fillStyle: "solid" as const,
+    strokeStyle: el.strokeStyle === "solid" ? undefined : el.strokeStyle,
+    bowing: el.roughness * 0.3,
+  };
+
+  // Draw the main rectangle (full size) with solid fill
+  rc.rectangle(el.x, el.y, el.width, el.height, options);
+
+  // Draw the corner fold triangle
+  const foldX = el.x + el.width - foldSize;
+  const foldY = el.y + el.height - foldSize;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(el.x + el.width - foldSize, el.y + el.height);
+  ctx.lineTo(el.x + el.width, el.y + el.height - foldSize);
+  ctx.lineTo(el.x + el.width - foldSize, el.y + el.height - foldSize);
+  ctx.closePath();
+
+  // Fill the fold with a slightly darker shade
+  ctx.fillStyle = el.fillColor === "transparent" ? "#e0e0e0" : darkenColor(el.fillColor, 0.15);
+  ctx.fill();
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.stroke();
+  ctx.restore();
+
+  // Draw text content
+  if (el.text) {
+    ctx.save();
+    ctx.fillStyle = el.strokeColor;
+    ctx.font = `${el.fontSize}px ${el.fontFamily}`;
+    ctx.textBaseline = "top";
+
+    const paddingX = 12;
+    const paddingY = 8;
+    const lines = el.text.split("\n");
+    const lineHeight = el.fontSize * 1.3;
+
+    for (let i = 0; i < lines.length; i++) {
+      const textY = el.y + paddingY + i * lineHeight;
+      if (textY + lineHeight > el.y + el.height - paddingY) break;
+      ctx.fillText(lines[i], el.x + paddingX, textY, el.width - paddingX * 2);
+    }
+    ctx.restore();
+  }
+}
+
+function darkenColor(hex: string, amount: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.max(0, (num >> 16) - Math.round(255 * amount));
+  const g = Math.max(0, ((num >> 8) & 0xff) - Math.round(255 * amount));
+  const b = Math.max(0, (num & 0xff) - Math.round(255 * amount));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
 function renderMermaid(
   ctx: CanvasRenderingContext2D,
   rc: ReturnType<typeof rough.canvas>,
@@ -460,6 +532,36 @@ function drawSelectionHandles(
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 1 / zoom;
     ctx.strokeRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
+  }
+
+  // Draw clone handles for note elements (right edge and bottom edge)
+  if (el.type === "note") {
+    const cloneRadius = 8 / zoom;
+    const cloneHandles: [number, number][] = [
+      [bounds.x + bounds.width, bounds.y + bounds.height / 2], // right
+      [bounds.x + bounds.width / 2, bounds.y + bounds.height], // bottom
+    ];
+
+    for (const [cx, cy] of cloneHandles) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, cloneRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#22c55e";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.stroke();
+
+      // Draw + sign
+      const plusSize = cloneRadius * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - plusSize, cy);
+      ctx.lineTo(cx + plusSize, cy);
+      ctx.moveTo(cx, cy - plusSize);
+      ctx.lineTo(cx, cy + plusSize);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.stroke();
+    }
   }
 
   ctx.restore();

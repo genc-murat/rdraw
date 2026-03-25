@@ -82,6 +82,8 @@ export function useKeyboardShortcuts() {
         setTool("hand");
       } else if (e.key === "m" || e.key === "M") {
         setTool("mermaid");
+      } else if (e.key === "n" || e.key === "N") {
+        setTool("note");
       } else if ((e.key === "g" || e.key === "G") && !ctrl) {
         setTool("highlight");
       } else if (e.key === "[" || e.key === "{") {

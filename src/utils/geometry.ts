@@ -197,3 +197,26 @@ export function measureText(text: string, fontSize: number): { width: number; he
     height: lines.length * fontSize * 1.3,
   };
 }
+
+export function getNoteCloneHandle(
+  px: number,
+  py: number,
+  el: DrawElement,
+  zoom: number = 1
+): "right" | "bottom" | null {
+  if (el.type !== "note") return null;
+  const bounds = getElementBounds(el);
+  const radius = 8 / zoom;
+
+  // Right handle at (x + width, y + height/2)
+  const rx = bounds.x + bounds.width;
+  const ry = bounds.y + bounds.height / 2;
+  if (Math.sqrt((px - rx) ** 2 + (py - ry) ** 2) < radius) return "right";
+
+  // Bottom handle at (x + width/2, y + height)
+  const bx = bounds.x + bounds.width / 2;
+  const by = bounds.y + bounds.height;
+  if (Math.sqrt((px - bx) ** 2 + (py - by) ** 2) < radius) return "bottom";
+
+  return null;
+}

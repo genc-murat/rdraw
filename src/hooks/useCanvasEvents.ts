@@ -1,8 +1,9 @@
 import { useRef, useCallback, useEffect } from "react";
 import useAppStore from "../store/useAppStore";
 import { generateId, generateSeed } from "../utils/ids";
-import { screenToCanvas, pointInElement, getResizeHandle, getElementBounds } from "../utils/geometry";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement } from "../types";
+import { screenToCanvas, pointInElement, getResizeHandle, getElementBounds, getNoteCloneHandle } from "../utils/geometry";
+import { DEFAULT_NOTE_FONT_SIZE, DEFAULT_FONT_FAMILY } from "../utils/constants";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, NoteElement } from "../types";
 
 const CLAMP_COORDINATE = 1e7;
 
@@ -79,6 +80,58 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
               state.pushHistory();
               return;
             }
+
+            // Check clone handles for note elements
+            if (el.type === "note") {
+              const cloneHandle = getNoteCloneHandle(point.x, point.y, el, state.viewTransform.zoom);
+              if (cloneHandle) {
+                const bounds = getElementBounds(el);
+                let newX: number, newY: number;
+                const gap = 20;
+                if (cloneHandle === "right") {
+                  newX = bounds.x + bounds.width + gap;
+                  newY = bounds.y;
+                } else {
+                  newX = bounds.x;
+                  newY = bounds.y + bounds.height + gap;
+                }
+                const newNote: NoteElement = {
+                  id: generateId(),
+                  type: "note",
+                  x: newX,
+                  y: newY,
+                  width: el.width,
+                  height: el.height,
+                  strokeColor: el.strokeColor,
+                  fillColor: el.fillColor,
+                  fillStyle: el.fillStyle,
+                  strokeStyle: el.strokeStyle,
+                  strokeWidth: el.strokeWidth,
+                  roughness: el.roughness,
+                  opacity: el.opacity,
+                  rotation: 0,
+                  seed: generateSeed(),
+                  text: "",
+                  fontSize: (el as NoteElement).fontSize,
+                  fontFamily: (el as NoteElement).fontFamily,
+                };
+                state.pushHistory();
+                state.addElement(newNote);
+                state.selectElement(newNote.id);
+                // Show text input for the new note
+                const rect = canvasRef.current?.getBoundingClientRect();
+                if (rect) {
+                  state.setShowTextInput({
+                    x: newX,
+                    y: newY,
+                    screenX: newX * state.viewTransform.zoom + state.viewTransform.x + rect.left,
+                    screenY: newY * state.viewTransform.zoom + state.viewTransform.y + rect.top,
+                    editId: newNote.id,
+                  });
+                }
+                return;
+              }
+            }
           }
         }
 
@@ -130,6 +183,34 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
             screenY: point.y * state.viewTransform.zoom + state.viewTransform.y + rect.top,
           });
         }
+        return;
+      }
+
+      if (state.activeTool === "note") {
+        state.pushHistory();
+        state.setIsDrawing(true);
+        state.setDrawStart({ x: point.x, y: point.y });
+        const el: NoteElement = {
+          id: generateId(),
+          type: "note",
+          x: point.x,
+          y: point.y,
+          width: 0,
+          height: 0,
+          strokeColor: state.strokeColor,
+          fillColor: state.fillColor,
+          fillStyle: state.fillStyle,
+          strokeStyle: state.strokeStyle,
+          strokeWidth: state.strokeWidth,
+          roughness: state.roughness,
+          opacity: state.opacity,
+          rotation: 0,
+          seed: generateSeed(),
+          text: "",
+          fontSize: state.fontSize || DEFAULT_NOTE_FONT_SIZE,
+          fontFamily: DEFAULT_FONT_FAMILY,
+        };
+        tempElementRef.current = el;
         return;
       }
 
@@ -283,7 +364,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       const start = state.drawStart;
       if (!start) return;
 
-      if (tempElementRef.current.type === "rectangle" || tempElementRef.current.type === "ellipse" || tempElementRef.current.type === "diamond") {
+      if (tempElementRef.current.type === "rectangle" || tempElementRef.current.type === "ellipse" || tempElementRef.current.type === "diamond" || tempElementRef.current.type === "note") {
         let x = start.x;
         let y = start.y;
         let w = point.x - start.x;
@@ -391,6 +472,8 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       let shouldAdd = true;
       if (el.type === "rectangle" || el.type === "ellipse" || el.type === "diamond") {
         shouldAdd = el.width > 2 || el.height > 2;
+      } else if (el.type === "note") {
+        shouldAdd = el.width > 5 || el.height > 5;
       } else if (el.type === "line" || el.type === "arrow") {
         const pts = (el as LineElement).points;
         const last = pts[pts.length - 1];
@@ -401,6 +484,20 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
 
       if (shouldAdd) {
         state.addElement(el);
+
+        // Show text input for new note elements
+        if (el.type === "note") {
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (rect) {
+            state.setShowTextInput({
+              x: el.x,
+              y: el.y,
+              screenX: el.x * state.viewTransform.zoom + state.viewTransform.x + rect.left,
+              screenY: el.y * state.viewTransform.zoom + state.viewTransform.y + rect.top,
+              editId: el.id,
+            });
+          }
+        }
       }
 
       tempElementRef.current = null;

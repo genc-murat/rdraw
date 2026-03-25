@@ -4,9 +4,9 @@ import { useCanvasEvents } from "../hooks/useCanvasEvents";
 import { renderElements, renderSelectionBox } from "../utils/rendering";
 import { measureText, pointInElement } from "../utils/geometry";
 import { parseMermaidCode, renderMermaidDiagram } from "../utils/mermaid";
-import { DEFAULT_FONT_FAMILY } from "../utils/constants";
+import { DEFAULT_FONT_FAMILY, NOTE_PADDING_X, NOTE_PADDING_Y } from "../utils/constants";
 import { generateId, generateSeed } from "../utils/ids";
-import type { MermaidElement } from "../types";
+import type { MermaidElement, NoteElement } from "../types";
 import ZoomControls from "./ZoomControls";
 import Minimap from "./Minimap";
 
@@ -109,6 +109,7 @@ export default function Canvas() {
       arrow: "crosshair",
       freehand: "crosshair",
       text: "text",
+      note: "crosshair",
       mermaid: "crosshair",
     };
 
@@ -129,7 +130,34 @@ export default function Canvas() {
   );
 
   const handleTextInputSubmit = (text: string) => {
-    if (!showTextInput || !text.trim()) {
+    if (!showTextInput) {
+      setShowTextInput(null);
+      return;
+    }
+
+    // Editing an existing note element
+    if (showTextInput.editId) {
+      const el = useAppStore.getState().elements.find((e) => e.id === showTextInput.editId);
+      if (el && el.type === "note") {
+        if (!text.trim()) {
+          // Empty text: remove the note
+          useAppStore.getState().removeElement(showTextInput.editId);
+        } else {
+          const noteEl = el as NoteElement;
+          const measured = measureText(text, noteEl.fontSize);
+          useAppStore.getState().updateElement(showTextInput.editId, {
+            text,
+            width: Math.max(noteEl.width, measured.width + NOTE_PADDING_X * 2),
+            height: Math.max(noteEl.height, measured.height + NOTE_PADDING_Y * 2),
+          } as any);
+        }
+        setShowTextInput(null);
+        return;
+      }
+    }
+
+    // Creating a new text element
+    if (!text.trim()) {
       setShowTextInput(null);
       return;
     }
@@ -226,6 +254,16 @@ export default function Canvas() {
       const y = (e.clientY - rect.top - state.viewTransform.y) / state.viewTransform.zoom;
 
       for (const el of [...state.elements].reverse()) {
+        if (el.type === "note" && pointInElement(x, y, el)) {
+          state.setShowTextInput({
+            x: el.x,
+            y: el.y,
+            screenX: e.clientX,
+            screenY: e.clientY,
+            editId: el.id,
+          });
+          return;
+        }
         if (el.type === "mermaid" && pointInElement(x, y, el)) {
           const mermaidEl = el as MermaidElement;
           state.setShowMermaidInput({
