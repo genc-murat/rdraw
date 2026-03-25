@@ -1,3 +1,5 @@
+import type { ArrowheadStyle } from "../types";
+
 export const DEFAULT_STROKE_COLOR = "#e0e0e0";
 export const DEFAULT_FILL_COLOR = "transparent";
 export const DEFAULT_STROKE_WIDTH = 2;
@@ -8,6 +10,9 @@ export const DEFAULT_FONT_FAMILY = "sans-serif";
 export const HISTORY_LIMIT = 50;
 export const MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 10;
+export const DEFAULT_BORDER_RADIUS = 0;
+export const DEFAULT_ARROWHEAD_STYLE: ArrowheadStyle = "arrow";
+export const DEFAULT_START_ARROWHEAD_STYLE: ArrowheadStyle = "none";
 
 export const COLORS = [
   "#e0e0e0", "#868e96", "#fa5252", "#e64980", "#be4bdb",
@@ -35,6 +40,10 @@ export const DEFAULT_NOTE_FONT_SIZE = 16;
 export const NOTE_PADDING_X = 16;
 export const NOTE_PADDING_Y = 12;
 export const NOTE_FOLD_SIZE = 20;
+
+export const CALLOUT_PADDING_X = 12;
+export const CALLOUT_PADDING_Y = 8;
+export const CALLOUT_TAIL_SIZE = 20;
 
 export const C4_COLORS: Record<string, { fill: string; stroke: string; text: string }> = {
   "c4-person": { fill: "#08427b", stroke: "#073b6f", text: "#ffffff" },

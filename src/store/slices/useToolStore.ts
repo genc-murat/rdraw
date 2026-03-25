@@ -1,4 +1,4 @@
-import type { DrawElement, FillStyle, StrokeStyle, Tool } from "../../types";
+import type { ArrowheadStyle, DrawElement, FillStyle, StrokeStyle, Tool } from "../../types";
 import type { StoreCreator } from "./types";
 import { measureText } from "../../utils/geometry";
 import {
@@ -14,6 +14,9 @@ import {
   DEFAULT_NOTE_COLOR,
   DEFAULT_NOTE_TEXT_COLOR,
   DEFAULT_NOTE_FONT_SIZE,
+  DEFAULT_BORDER_RADIUS,
+  DEFAULT_ARROWHEAD_STYLE,
+  DEFAULT_START_ARROWHEAD_STYLE,
   C4_COLORS,
 } from "../../utils/constants";
 
@@ -27,6 +30,10 @@ export interface ToolState {
   roughness: number;
   opacity: number;
   fontSize: number;
+  borderRadius: number;
+  endArrowheadStyle: ArrowheadStyle;
+  startArrowheadStyle: ArrowheadStyle;
+  connectorRouting: "free" | "orthogonal";
 }
 
 export interface ToolActions {
@@ -39,6 +46,10 @@ export interface ToolActions {
   setRoughness: (roughness: number) => void;
   setOpacity: (opacity: number) => void;
   setFontSize: (size: number) => void;
+  setBorderRadius: (radius: number) => void;
+  setEndArrowheadStyle: (style: ArrowheadStyle) => void;
+  setStartArrowheadStyle: (style: ArrowheadStyle) => void;
+  setConnectorRouting: (routing: "free" | "orthogonal") => void;
 }
 
 export const initialToolState: ToolState = {
@@ -51,6 +62,10 @@ export const initialToolState: ToolState = {
   roughness: DEFAULT_ROUGHNESS,
   opacity: DEFAULT_OPACITY,
   fontSize: DEFAULT_FONT_SIZE,
+  borderRadius: DEFAULT_BORDER_RADIUS,
+  endArrowheadStyle: DEFAULT_ARROWHEAD_STYLE,
+  startArrowheadStyle: DEFAULT_START_ARROWHEAD_STYLE,
+  connectorRouting: "free",
 };
 
 export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get) => ({
@@ -63,6 +78,13 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
       updates.strokeWidth = DEFAULT_HIGHLIGHT_STROKE_WIDTH;
       updates.opacity = DEFAULT_HIGHLIGHT_OPACITY;
     } else if (tool === "note") {
+      updates.fillColor = DEFAULT_NOTE_COLOR;
+      updates.fillStyle = "solid";
+      updates.strokeColor = DEFAULT_NOTE_TEXT_COLOR;
+      updates.strokeWidth = DEFAULT_STROKE_WIDTH;
+      updates.opacity = DEFAULT_OPACITY;
+      updates.fontSize = DEFAULT_NOTE_FONT_SIZE;
+    } else if (tool === "callout") {
       updates.fillColor = DEFAULT_NOTE_COLOR;
       updates.fillStyle = "solid";
       updates.strokeColor = DEFAULT_NOTE_TEXT_COLOR;
@@ -102,9 +124,19 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
 
   setFillStyle: (style) => {
     const state = get();
-    set({ fillStyle: style });
+    const updates: Record<string, any> = { fillStyle: style };
+    if (style !== "none" && state.fillColor === "transparent") {
+      updates.fillColor = "#ffffff";
+    }
+    set(updates);
     for (const id of state.selectedIds) {
       state.updateElement(id, { fillStyle: style });
+      if (style !== "none") {
+        const el = state.elements.find((e: DrawElement) => e.id === id);
+        if (el && el.fillColor === "transparent") {
+          state.updateElement(id, { fillColor: "#ffffff" });
+        }
+      }
     }
   },
 
@@ -153,7 +185,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
           width: measured.width,
           height: measured.height,
         } as any);
-      } else if (el && el.type === "note") {
+      } else if (el && (el.type === "note" || el.type === "callout")) {
         const noteEl = el as any;
         if (noteEl.text) {
           const measured = measureText(noteEl.text, size);
@@ -165,6 +197,47 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
         } else {
           state.updateElement(id, { fontSize: size } as any);
         }
+      }
+    }
+  },
+
+  setBorderRadius: (radius) => {
+    const state = get();
+    set({ borderRadius: radius });
+    for (const id of state.selectedIds) {
+      state.updateElement(id, { borderRadius: radius } as any);
+    }
+  },
+
+  setEndArrowheadStyle: (style) => {
+    const state = get();
+    set({ endArrowheadStyle: style });
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e: DrawElement) => e.id === id);
+      if (el && (el.type === "arrow" || el.type === "line" || el.type === "c4-relationship")) {
+        state.updateElement(id, { endArrowhead: style } as any);
+      }
+    }
+  },
+
+  setStartArrowheadStyle: (style) => {
+    const state = get();
+    set({ startArrowheadStyle: style });
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e: DrawElement) => e.id === id);
+      if (el && (el.type === "arrow" || el.type === "line" || el.type === "c4-relationship")) {
+        state.updateElement(id, { startArrowhead: style } as any);
+      }
+    }
+  },
+
+  setConnectorRouting: (routing) => {
+    const state = get();
+    set({ connectorRouting: routing });
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e: DrawElement) => e.id === id);
+      if (el && (el.type === "arrow" || el.type === "line")) {
+        state.updateElement(id, { routing } as any);
       }
     }
   },

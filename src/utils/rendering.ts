@@ -1,9 +1,9 @@
 import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, NoteElement, MermaidElement, C4Element, C4RelationshipElement } from "../types";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, TextElement, NoteElement, CalloutElement, MermaidElement, C4Element, C4RelationshipElement } from "../types";
 import { getElementBounds } from "./geometry";
 import { getAnchorPoints } from "./connectors";
-import { NOTE_FOLD_SIZE, C4_FONT_SIZE, C4_DESC_FONT_SIZE, C4_TECH_FONT_SIZE, SNAP_GUIDE_COLOR } from "./constants";
+import { NOTE_FOLD_SIZE, CALLOUT_TAIL_SIZE, CALLOUT_PADDING_X, CALLOUT_PADDING_Y, C4_FONT_SIZE, C4_DESC_FONT_SIZE, C4_TECH_FONT_SIZE, SNAP_GUIDE_COLOR } from "./constants";
 
 const CULL_PADDING = 50;
 
@@ -100,7 +100,7 @@ export function renderElements(
     ctx.save();
     ctx.globalAlpha = el.opacity;
 
-    if (el.type === "rectangle" || el.type === "ellipse" || el.type === "diamond") {
+    if (el.type === "rectangle" || el.type === "rounded-rectangle" || el.type === "ellipse" || el.type === "diamond" || el.type === "star" || el.type === "hexagon") {
       renderShape(ctx, rc, el as ShapeElement);
     } else if (el.type === "line" || el.type === "arrow") {
       renderLine(ctx, rc, el as LineElement);
@@ -110,6 +110,8 @@ export function renderElements(
       renderText(ctx, el as TextElement);
     } else if (el.type === "note") {
       renderNote(ctx, rc, el as NoteElement);
+    } else if (el.type === "callout") {
+      renderCallout(ctx, rc, el as CalloutElement);
     } else if (el.type === "mermaid") {
       renderMermaid(ctx, rc, el as MermaidElement);
     } else if (el.type.startsWith("c4-") && el.type !== "c4-relationship") {
@@ -194,12 +196,20 @@ function renderShape(
     roughness: el.roughness,
     fill: el.fillColor === "transparent" ? undefined : el.fillColor,
     fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle,
-    strokeStyle: el.strokeStyle === "solid" ? undefined : el.strokeStyle,
+    strokeLineDash: el.strokeStyle === "solid" ? undefined : el.strokeStyle === "dashed" ? [8, 4] : [2, 4],
     bowing: el.roughness * 0.5,
   };
 
   if (el.type === "rectangle") {
     rc.rectangle(el.x, el.y, el.width, el.height, options);
+  } else if (el.type === "rounded-rectangle") {
+    const r = Math.min(el.borderRadius || 0, Math.abs(el.width) / 2, Math.abs(el.height) / 2);
+    if (r <= 0) {
+      rc.rectangle(el.x, el.y, el.width, el.height, options);
+    } else {
+      const path = `M${el.x + r} ${el.y} L${el.x + el.width - r} ${el.y} Q${el.x + el.width} ${el.y} ${el.x + el.width} ${el.y + r} L${el.x + el.width} ${el.y + el.height - r} Q${el.x + el.width} ${el.y + el.height} ${el.x + el.width - r} ${el.y + el.height} L${el.x + r} ${el.y + el.height} Q${el.x} ${el.y + el.height} ${el.x} ${el.y + el.height - r} L${el.x} ${el.y + r} Q${el.x} ${el.y} ${el.x + r} ${el.y} Z`;
+      rc.path(path, options);
+    }
   } else if (el.type === "ellipse") {
     rc.ellipse(
       el.x + el.width / 2,
@@ -222,6 +232,28 @@ function renderShape(
       ],
       options
     );
+  } else if (el.type === "star") {
+    const cx = el.x + el.width / 2;
+    const cy = el.y + el.height / 2;
+    const outerR = Math.min(Math.abs(el.width), Math.abs(el.height)) / 2;
+    const innerR = outerR * 0.4;
+    const points: [number, number][] = [];
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI) / 5 - Math.PI / 2;
+      const r = i % 2 === 0 ? outerR : innerR;
+      points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+    }
+    rc.polygon(points, options);
+  } else if (el.type === "hexagon") {
+    const cx = el.x + el.width / 2;
+    const cy = el.y + el.height / 2;
+    const r = Math.min(Math.abs(el.width), Math.abs(el.height)) / 2;
+    const points: [number, number][] = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * Math.PI) / 3;
+      points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+    }
+    rc.polygon(points, options);
   }
 }
 
@@ -239,6 +271,7 @@ function renderLine(
     stroke: el.strokeColor,
     strokeWidth: el.strokeWidth,
     roughness: el.roughness,
+    strokeLineDash: el.strokeStyle === "solid" ? undefined : el.strokeStyle === "dashed" ? [8, 4] : [2, 4],
   };
 
   if (el.type === "line") {
@@ -247,31 +280,114 @@ function renderLine(
     const start = absPoints[0];
     const end = absPoints[absPoints.length - 1];
 
-    rc.line(start[0], start[1], end[0], end[1], options);
+    if (el.routing === "orthogonal" && absPoints.length === 2) {
+      // Compute L-shaped or Z-shaped orthogonal route
+      const midX = (start[0] + end[0]) / 2;
+      const dx = end[0] - start[0];
+      const dy = end[1] - start[1];
+      let routePoints: [number, number][];
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Horizontal dominant: L-shape via horizontal then vertical
+        routePoints = [start, [midX, start[1]], [midX, end[1]], end];
+      } else {
+        // Vertical dominant: L-shape via vertical then horizontal
+        const midY = (start[1] + end[1]) / 2;
+        routePoints = [start, [start[0], midY], [end[0], midY], end];
+      }
+      for (let i = 0; i < routePoints.length - 1; i++) {
+        rc.line(routePoints[i][0], routePoints[i][1], routePoints[i + 1][0], routePoints[i + 1][1], options);
+      }
+    } else {
+      rc.line(start[0], start[1], end[0], end[1], options);
+    }
 
     const angle = Math.atan2(end[1] - start[1], end[0] - start[0]);
     const arrowLen = 12 + el.strokeWidth * 2;
     const arrowAngle = Math.PI / 6;
 
-    if (el.endArrowhead !== false) {
-      const a1x = end[0] - arrowLen * Math.cos(angle - arrowAngle);
-      const a1y = end[1] - arrowLen * Math.sin(angle - arrowAngle);
-      const a2x = end[0] - arrowLen * Math.cos(angle + arrowAngle);
-      const a2y = end[1] - arrowLen * Math.sin(angle + arrowAngle);
+    const endStyle = el.endArrowhead ?? "arrow";
+    const startStyle = el.startArrowhead ?? "none";
 
-      rc.line(end[0], end[1], a1x, a1y, options);
-      rc.line(end[0], end[1], a2x, a2y, options);
-    }
+    renderArrowhead(ctx, rc, end, angle, endStyle, arrowLen, arrowAngle, el.strokeColor, el.strokeWidth, options);
+    renderArrowhead(ctx, rc, start, angle + Math.PI, startStyle, arrowLen, arrowAngle, el.strokeColor, el.strokeWidth, options);
+  }
+}
 
-    if (el.startArrowhead) {
-      const a1x = start[0] + arrowLen * Math.cos(angle - arrowAngle);
-      const a1y = start[1] + arrowLen * Math.sin(angle - arrowAngle);
-      const a2x = start[0] + arrowLen * Math.cos(angle + arrowAngle);
-      const a2y = start[1] + arrowLen * Math.sin(angle + arrowAngle);
+function renderArrowhead(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  point: [number, number],
+  angle: number,
+  style: string,
+  arrowLen: number,
+  arrowAngle: number,
+  strokeColor: string,
+  strokeWidth: number,
+  lineOptions: any
+): void {
+  if (style === "none") return;
 
-      rc.line(start[0], start[1], a1x, a1y, options);
-      rc.line(start[0], start[1], a2x, a2y, options);
-    }
+  const [x, y] = point;
+
+  if (style === "arrow") {
+    const a1x = x - arrowLen * Math.cos(angle - arrowAngle);
+    const a1y = y - arrowLen * Math.sin(angle - arrowAngle);
+    const a2x = x - arrowLen * Math.cos(angle + arrowAngle);
+    const a2y = y - arrowLen * Math.sin(angle + arrowAngle);
+    rc.line(x, y, a1x, a1y, lineOptions);
+    rc.line(x, y, a2x, a2y, lineOptions);
+  } else if (style === "triangle") {
+    const a1x = x - arrowLen * Math.cos(angle - arrowAngle);
+    const a1y = y - arrowLen * Math.sin(angle - arrowAngle);
+    const a2x = x - arrowLen * Math.cos(angle + arrowAngle);
+    const a2y = y - arrowLen * Math.sin(angle + arrowAngle);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(a1x, a1y);
+    ctx.lineTo(a2x, a2y);
+    ctx.closePath();
+    ctx.fillStyle = strokeColor;
+    ctx.fill();
+    ctx.restore();
+  } else if (style === "circle") {
+    const r = arrowLen * 0.35;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x - arrowLen * Math.cos(angle), y - arrowLen * Math.sin(angle), r, 0, Math.PI * 2);
+    ctx.fillStyle = strokeColor;
+    ctx.fill();
+    ctx.restore();
+  } else if (style === "diamond") {
+    const cx = x - arrowLen * 0.5 * Math.cos(angle);
+    const cy = y - arrowLen * 0.5 * Math.sin(angle);
+    const r = arrowLen * 0.4;
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    const perpX = -dy * r;
+    const perpY = dx * r;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(cx + perpX, cy + perpY);
+    ctx.lineTo(cx - r * dx * 1.2, cy - r * dy * 1.2);
+    ctx.lineTo(cx - perpX, cy - perpY);
+    ctx.closePath();
+    ctx.fillStyle = strokeColor;
+    ctx.fill();
+    ctx.restore();
+  } else if (style === "bar") {
+    const perpX = -Math.sin(angle);
+    const perpY = Math.cos(angle);
+    const halfLen = arrowLen * 0.4;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + perpX * halfLen, y + perpY * halfLen);
+    ctx.lineTo(x - perpX * halfLen, y - perpY * halfLen);
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth * 1.5;
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -335,7 +451,7 @@ function renderNote(
     roughness: el.roughness,
     fill: el.fillColor === "transparent" ? undefined : el.fillColor,
     fillStyle: "solid" as const,
-    strokeStyle: el.strokeStyle === "solid" ? undefined : el.strokeStyle,
+    strokeLineDash: el.strokeStyle === "solid" ? undefined : el.strokeStyle === "dashed" ? [8, 4] : [2, 4],
     bowing: el.roughness * 0.3,
   };
 
@@ -358,7 +474,9 @@ function renderNote(
   ctx.fill();
   ctx.strokeStyle = el.strokeColor;
   ctx.lineWidth = el.strokeWidth;
+  ctx.setLineDash(el.strokeStyle === "dashed" ? [8, 4] : el.strokeStyle === "dotted" ? [2, 4] : []);
   ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
 
   // Draw text content
@@ -388,6 +506,77 @@ function darkenColor(hex: string, amount: number): string {
   const g = Math.max(0, ((num >> 8) & 0xff) - Math.round(255 * amount));
   const b = Math.max(0, (num & 0xff) - Math.round(255 * amount));
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
+function renderCallout(
+  ctx: CanvasRenderingContext2D,
+  rc: ReturnType<typeof rough.canvas>,
+  el: CalloutElement
+): void {
+  const radius = Math.min(8, el.width / 4, el.height / 4);
+  const tailSize = CALLOUT_TAIL_SIZE;
+
+  const options = {
+    seed: el.seed,
+    stroke: el.strokeColor,
+    strokeWidth: el.strokeWidth,
+    roughness: el.roughness,
+    fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+    fillStyle: "solid" as const,
+    strokeLineDash: el.strokeStyle === "solid" ? undefined : el.strokeStyle === "dashed" ? [8, 4] : [2, 4],
+    bowing: el.roughness * 0.3,
+  };
+
+  // Draw rounded rectangle body
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(el.x, el.y, el.width, el.height, radius);
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.setLineDash(el.strokeStyle === "dashed" ? [8, 4] : el.strokeStyle === "dotted" ? [2, 4] : []);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Draw tail (triangle pointing down from bottom center)
+  const tailX = el.x + el.width / 2;
+  const tailY = el.y + el.height;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(tailX - tailSize / 2, tailY);
+  ctx.lineTo(tailX, tailY + tailSize);
+  ctx.lineTo(tailX + tailSize / 2, tailY);
+  ctx.closePath();
+  ctx.fillStyle = el.fillColor;
+  ctx.fill();
+  ctx.strokeStyle = el.strokeColor;
+  ctx.lineWidth = el.strokeWidth;
+  ctx.setLineDash(el.strokeStyle === "dashed" ? [8, 4] : el.strokeStyle === "dotted" ? [2, 4] : []);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Draw text
+  if (el.text) {
+    ctx.save();
+    ctx.fillStyle = el.strokeColor;
+    ctx.font = `${el.fontSize}px ${el.fontFamily}`;
+    ctx.textBaseline = "top";
+
+    const paddingX = CALLOUT_PADDING_X;
+    const paddingY = CALLOUT_PADDING_Y;
+    const lines = el.text.split("\n");
+    const lineHeight = el.fontSize * 1.3;
+
+    for (let i = 0; i < lines.length; i++) {
+      const textY = el.y + paddingY + i * lineHeight;
+      if (textY + lineHeight > el.y + el.height - paddingY) break;
+      ctx.fillText(lines[i], el.x + paddingX, textY, el.width - paddingX * 2);
+    }
+    ctx.restore();
+  }
 }
 
 function renderMermaid(
@@ -818,7 +1007,7 @@ function drawAnchorPoints(
   const radius = 4 / zoom;
   ctx.save();
   for (const el of elements) {
-    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand") continue;
+    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand" || el.type === "callout") continue;
     const anchors = getAnchorPoints(el);
     for (const a of anchors) {
       ctx.beginPath();
@@ -887,7 +1076,7 @@ function drawSelectionHandles(
   }
 
   // Draw clone handles for note elements (right edge and bottom edge)
-  if (el.type === "note") {
+  if (el.type === "note" || el.type === "callout") {
     const cloneRadius = 8 / zoom;
     const cloneHandles: [number, number][] = [
       [bounds.x + bounds.width, bounds.y + bounds.height / 2], // right

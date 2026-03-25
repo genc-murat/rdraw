@@ -2,10 +2,10 @@ import { useRef, useCallback, useEffect } from "react";
 import useAppStore from "../store/useAppStore";
 import { generateId, generateSeed } from "../utils/ids";
 import { screenToCanvas, pointInElement, getResizeHandle, getElementBounds, getNoteCloneHandle } from "../utils/geometry";
-import { DEFAULT_NOTE_FONT_SIZE, DEFAULT_FONT_FAMILY, C4_COLORS, C4_DEFAULT_WIDTH, C4_DEFAULT_HEIGHT, C4_BOUNDARY_DEFAULT_WIDTH, C4_BOUNDARY_DEFAULT_HEIGHT } from "../utils/constants";
+import { DEFAULT_NOTE_FONT_SIZE, DEFAULT_FONT_FAMILY, C4_COLORS, C4_DEFAULT_WIDTH, C4_DEFAULT_HEIGHT, C4_BOUNDARY_DEFAULT_WIDTH, C4_BOUNDARY_DEFAULT_HEIGHT, CALLOUT_PADDING_X, CALLOUT_PADDING_Y } from "../utils/constants";
 import { computeSnap } from "../utils/snap";
 import { findAnchorAtPoint, getBestAnchor, getAnchorPosition, updateConnectorPoints } from "../utils/connectors";
-import type { DrawElement, ShapeElement, LineElement, FreehandElement, NoteElement, C4Element, C4RelationshipElement, C4Type } from "../types";
+import type { DrawElement, ShapeElement, LineElement, FreehandElement, NoteElement, CalloutElement, C4Element, C4RelationshipElement, C4Type } from "../types";
 
 const CLAMP_COORDINATE = 1e7;
 
@@ -123,8 +123,8 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
               return;
             }
 
-            // Check clone handles for note elements
-            if (el.type === "note") {
+            // Check clone handles for note/callout elements
+            if (el.type === "note" || el.type === "callout") {
               const cloneHandle = getNoteCloneHandle(point.x, point.y, el, state.viewTransform.zoom);
               if (cloneHandle) {
                 const bounds = getElementBounds(el);
@@ -137,9 +137,10 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
                   newX = bounds.x;
                   newY = bounds.y + bounds.height + gap;
                 }
-                const newNote: NoteElement = {
+                const isCallout = el.type === "callout";
+                const newEl = {
                   id: generateId(),
-                  type: "note",
+                  type: isCallout ? "callout" : "note",
                   x: newX,
                   y: newY,
                   width: el.width,
@@ -156,11 +157,11 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
                   text: "",
                   fontSize: (el as NoteElement).fontSize,
                   fontFamily: (el as NoteElement).fontFamily,
-                };
+                } as NoteElement | CalloutElement;
                 state.pushHistory();
-                state.addElement(newNote);
-                state.selectElement(newNote.id);
-                // Show text input for the new note
+                state.addElement(newEl);
+                state.selectElement(newEl.id);
+                // Show text input for the new element
                 const rect = canvasRef.current?.getBoundingClientRect();
                 if (rect) {
                   state.setShowTextInput({
@@ -168,7 +169,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
                     y: newY,
                     screenX: newX * state.viewTransform.zoom + state.viewTransform.x + rect.left,
                     screenY: newY * state.viewTransform.zoom + state.viewTransform.y + rect.top,
-                    editId: newNote.id,
+                    editId: newEl.id,
                   });
                 }
                 return;
@@ -256,6 +257,34 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         return;
       }
 
+      if (state.activeTool === "callout") {
+        state.pushHistory();
+        state.setIsDrawing(true);
+        state.setDrawStart({ x: point.x, y: point.y });
+        const el: CalloutElement = {
+          id: generateId(),
+          type: "callout",
+          x: point.x,
+          y: point.y,
+          width: 0,
+          height: 0,
+          strokeColor: state.strokeColor,
+          fillColor: state.fillColor,
+          fillStyle: state.fillStyle,
+          strokeStyle: state.strokeStyle,
+          strokeWidth: state.strokeWidth,
+          roughness: state.roughness,
+          opacity: state.opacity,
+          rotation: 0,
+          seed: generateSeed(),
+          text: "",
+          fontSize: state.fontSize || DEFAULT_NOTE_FONT_SIZE,
+          fontFamily: DEFAULT_FONT_FAMILY,
+        };
+        tempElementRef.current = el;
+        return;
+      }
+
       const c4ShapeTypes: C4Type[] = ["c4-person", "c4-software-system", "c4-container", "c4-component", "c4-database", "c4-system-boundary", "c4-enterprise-boundary"];
       if (c4ShapeTypes.includes(state.activeTool as C4Type)) {
         state.pushHistory();
@@ -291,7 +320,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       state.setIsDrawing(true);
       state.setDrawStart({ x: point.x, y: point.y });
 
-      if (state.activeTool === "rectangle" || state.activeTool === "ellipse" || state.activeTool === "diamond") {
+      if (state.activeTool === "rectangle" || state.activeTool === "rounded-rectangle" || state.activeTool === "ellipse" || state.activeTool === "diamond" || state.activeTool === "star" || state.activeTool === "hexagon") {
         const el: ShapeElement = {
           id: generateId(),
           type: state.activeTool,
@@ -308,6 +337,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           opacity: state.opacity,
           rotation: 0,
           seed: generateSeed(),
+          borderRadius: state.activeTool === "rounded-rectangle" ? 12 : 0,
         };
         tempElementRef.current = el;
       } else if (state.activeTool === "line" || state.activeTool === "arrow" || state.activeTool === "c4-relationship") {
@@ -345,8 +375,8 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           rotation: 0,
           seed: generateSeed(),
           points: [[0, 0], [0, 0]],
-          endArrowhead: true,
-          startArrowhead: false,
+          endArrowhead: state.activeTool === "arrow" ? (state.endArrowheadStyle || "arrow") : "none",
+          startArrowhead: state.startArrowheadStyle || "none",
           ...(state.activeTool === "c4-relationship" ? { label: "" } : {}),
           ...(startElementId ? { startElementId, startAnchor } : {}),
         } as LineElement | C4RelationshipElement;
@@ -505,7 +535,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       const start = state.drawStart;
       if (!start) return;
 
-      if (tempElementRef.current.type === "rectangle" || tempElementRef.current.type === "ellipse" || tempElementRef.current.type === "diamond" || tempElementRef.current.type === "note" || (tempElementRef.current.type.startsWith("c4-") && tempElementRef.current.type !== "c4-relationship")) {
+      if (tempElementRef.current.type === "rectangle" || tempElementRef.current.type === "rounded-rectangle" || tempElementRef.current.type === "ellipse" || tempElementRef.current.type === "diamond" || tempElementRef.current.type === "star" || tempElementRef.current.type === "hexagon" || tempElementRef.current.type === "note" || tempElementRef.current.type === "callout" || (tempElementRef.current.type.startsWith("c4-") && tempElementRef.current.type !== "c4-relationship")) {
         let x = start.x;
         let y = start.y;
         let w = point.x - start.x;
@@ -640,9 +670,9 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       const el = tempElementRef.current;
 
       let shouldAdd = true;
-      if (el.type === "rectangle" || el.type === "ellipse" || el.type === "diamond") {
+      if (el.type === "rectangle" || el.type === "rounded-rectangle" || el.type === "ellipse" || el.type === "diamond" || el.type === "star" || el.type === "hexagon") {
         shouldAdd = el.width > 2 || el.height > 2;
-      } else if (el.type === "note") {
+      } else if (el.type === "note" || el.type === "callout") {
         shouldAdd = el.width > 5 || el.height > 5;
       } else if (el.type.startsWith("c4-") && el.type !== "c4-relationship") {
         shouldAdd = el.width > 5 || el.height > 5;
@@ -666,7 +696,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         state.addElement(el);
 
         // Show text input for new note elements
-        if (el.type === "note") {
+        if (el.type === "note" || el.type === "callout") {
           const rect = canvasRef.current?.getBoundingClientRect();
           if (rect) {
             state.setShowTextInput({

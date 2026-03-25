@@ -113,8 +113,16 @@ export function useKeyboardShortcuts() {
         setTool("select");
       } else if (e.key === "v" || e.key === "V") {
         setTool("select");
+      } else if (e.shiftKey && (e.key === "r" || e.key === "R")) {
+        setTool("rounded-rectangle");
       } else if (e.key === "r" || e.key === "R") {
         setTool("rectangle");
+      } else if (e.key === "s" || e.key === "S") {
+        setTool("star");
+      } else if (e.key === "x" || e.key === "X") {
+        setTool("hexagon");
+      } else if (e.key === "c" || e.key === "C") {
+        setTool("callout");
       } else if (e.key === "e" || e.key === "E") {
         setTool("ellipse");
       } else if (e.key === "d" && !ctrl) {

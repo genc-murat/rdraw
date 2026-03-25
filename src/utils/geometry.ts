@@ -223,7 +223,7 @@ export function getNoteCloneHandle(
   el: DrawElement,
   zoom: number = 1
 ): "right" | "bottom" | null {
-  if (el.type !== "note") return null;
+  if (el.type !== "note" && el.type !== "callout") return null;
   const bounds = getElementBounds(el);
   const radius = 8 / zoom;
 

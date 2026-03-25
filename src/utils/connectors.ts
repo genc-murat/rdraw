@@ -51,7 +51,7 @@ export function findAnchorAtPoint(
 
   for (const el of elements) {
     if (el.id === excludeId) continue;
-    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand") continue;
+    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand" || el.type === "callout") continue;
 
     const anchors = getAnchorPoints(el);
     for (const a of anchors) {
@@ -77,7 +77,7 @@ export function findElementAtPoint(
   for (let i = elements.length - 1; i >= 0; i--) {
     const el = elements[i];
     if (excludeIds.has(el.id)) continue;
-    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand") continue;
+    if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand" || el.type === "callout") continue;
     const b = getElementBounds(el);
     const padding = 5;
     if (

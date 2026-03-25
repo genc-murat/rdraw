@@ -6,7 +6,7 @@ import { measureText, pointInElement } from "../utils/geometry";
 import { parseMermaidCode, renderMermaidDiagram } from "../utils/mermaid";
 import { DEFAULT_FONT_FAMILY, NOTE_PADDING_X, NOTE_PADDING_Y } from "../utils/constants";
 import { generateId, generateSeed } from "../utils/ids";
-import type { MermaidElement, NoteElement, C4Element, TextElement } from "../types";
+import type { MermaidElement, NoteElement, CalloutElement, C4Element, TextElement } from "../types";
 import ZoomControls from "./ZoomControls";
 import Minimap from "./Minimap";
 
@@ -107,13 +107,17 @@ export default function Canvas() {
       select: "default",
       hand: "grab",
       rectangle: "crosshair",
+      "rounded-rectangle": "crosshair",
       ellipse: "crosshair",
       diamond: "crosshair",
+      star: "crosshair",
+      hexagon: "crosshair",
       line: "crosshair",
       arrow: "crosshair",
       freehand: "crosshair",
       text: "text",
       note: "crosshair",
+      callout: "crosshair",
       mermaid: "crosshair",
       "c4-person": "crosshair",
       "c4-software-system": "crosshair",
@@ -150,9 +154,8 @@ export default function Canvas() {
     // Editing an existing note element
     if (showTextInput.editId) {
       const el = useAppStore.getState().elements.find((e) => e.id === showTextInput.editId);
-      if (el && el.type === "note") {
+      if (el && (el.type === "text" || el.type === "note" || el.type === "callout")) {
         if (!text.trim()) {
-          // Empty text: remove the note
           useAppStore.getState().removeElement(showTextInput.editId);
         } else {
           const noteEl = el as NoteElement;
@@ -161,21 +164,6 @@ export default function Canvas() {
             text,
             width: Math.max(noteEl.width, measured.width + NOTE_PADDING_X * 2),
             height: Math.max(noteEl.height, measured.height + NOTE_PADDING_Y * 2),
-          } as any);
-        }
-        setShowTextInput(null);
-        return;
-      }
-      if (el && el.type === "text") {
-        if (!text.trim()) {
-          useAppStore.getState().removeElement(showTextInput.editId);
-        } else {
-          const textEl = el as TextElement;
-          const measured = measureText(text, textEl.fontSize, textEl.fontFamily);
-          useAppStore.getState().updateElement(showTextInput.editId, {
-            text,
-            width: measured.width,
-            height: measured.height,
           } as any);
         }
         setShowTextInput(null);
@@ -301,6 +289,16 @@ export default function Canvas() {
           });
           return;
         }
+        if (el.type === "callout" && pointInElement(x, y, el)) {
+          state.setShowTextInput({
+            x: el.x,
+            y: el.y,
+            screenX: e.clientX,
+            screenY: e.clientY,
+            editId: el.id,
+          });
+          return;
+        }
         if (el.type === "mermaid" && pointInElement(x, y, el)) {
           const mermaidEl = el as MermaidElement;
           state.setShowMermaidInput({
@@ -344,7 +342,7 @@ export default function Canvas() {
             showTextInput.editId
               ? (() => {
                   const el = useAppStore.getState().elements.find((e) => e.id === showTextInput.editId);
-                  if (el && (el.type === "text" || el.type === "note")) return (el as TextElement).text;
+                  if (el && (el.type === "text" || el.type === "note" || el.type === "callout")) return (el as TextElement).text;
                   return "";
                 })()
               : ""

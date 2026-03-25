@@ -57,6 +57,31 @@ const RelationshipIcon = () => (
   </svg>
 );
 
+const CalloutIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="13" rx="2" />
+    <polygon points="8,16 12,22 16,16" fill="currentColor" />
+  </svg>
+);
+
+const StarIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" />
+  </svg>
+);
+
+const HexagonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" />
+  </svg>
+);
+
+const RoundedRectangleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="4" />
+  </svg>
+);
+
 const HighlightIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M15.5 4.5l4 4L8 20H4v-4L15.5 4.5z" />
@@ -84,14 +109,18 @@ const TOOLS: ToolDef[] = [
   { id: "select", label: "Select (V)", icon: "\u2196" },
   { id: "hand", label: "Hand (H)", icon: "\u270B" },
   { id: "rectangle", label: "Rectangle (R)", icon: "\u25AD" },
+  { id: "rounded-rectangle", label: "Rounded Rect (Shift+R)", icon: <RoundedRectangleIcon /> },
   { id: "ellipse", label: "Ellipse (E)", icon: "\u25EF" },
   { id: "diamond", label: "Diamond (D)", icon: "\u25C7" },
+  { id: "star", label: "Star (S)", icon: <StarIcon /> },
+  { id: "hexagon", label: "Hexagon (X)", icon: <HexagonIcon /> },
   { id: "line", label: "Line (L)", icon: "\u2571" },
   { id: "arrow", label: "Arrow (A)", icon: "\u2192" },
   { id: "freehand", label: "Freehand (P)", icon: "\u270E" },
   { id: "highlight", label: "Highlight (G)", icon: <HighlightIcon /> },
   { id: "text", label: "Text (T)", icon: "T" },
   { id: "note", label: "Note (N)", icon: <NoteIcon /> },
+  { id: "callout", label: "Callout (C)", icon: <CalloutIcon /> },
   { id: "mermaid", label: "Mermaid (M)", icon: "\u2325" },
 ];
 

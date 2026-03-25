@@ -1,7 +1,35 @@
 import useAppStore from "../store/useAppStore";
-import type { FillStyle, StrokeStyle } from "../types";
+import type { FillStyle, StrokeStyle, ArrowheadStyle } from "../types";
 import ColorPicker from "./ColorPicker";
 import { HIGHLIGHT_COLORS } from "../utils/constants";
+
+function ArrowheadStyleSelect({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: ArrowheadStyle;
+  onChange: (v: ArrowheadStyle) => void;
+}) {
+  return (
+    <div className="prop-row">
+      <span className="prop-label">{label}</span>
+      <select
+        className="prop-select"
+        value={value}
+        onChange={(e) => onChange(e.target.value as ArrowheadStyle)}
+      >
+        <option value="none">None</option>
+        <option value="arrow">Arrow</option>
+        <option value="triangle">Triangle</option>
+        <option value="circle">Circle</option>
+        <option value="diamond">Diamond</option>
+        <option value="bar">Bar</option>
+      </select>
+    </div>
+  );
+}
 
 export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const strokeColor = useAppStore((s) => s.strokeColor);
@@ -13,6 +41,10 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const opacity = useAppStore((s) => s.opacity);
   const fontSize = useAppStore((s) => s.fontSize);
   const activeTool = useAppStore((s) => s.activeTool);
+  const borderRadius = useAppStore((s) => s.borderRadius);
+  const endArrowheadStyle = useAppStore((s) => s.endArrowheadStyle);
+  const startArrowheadStyle = useAppStore((s) => s.startArrowheadStyle);
+  const connectorRouting = useAppStore((s) => s.connectorRouting);
 
   const setStrokeColor = useAppStore((s) => s.setStrokeColor);
   const setFillColor = useAppStore((s) => s.setFillColor);
@@ -22,6 +54,10 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const setRoughness = useAppStore((s) => s.setRoughness);
   const setOpacity = useAppStore((s) => s.setOpacity);
   const setFontSize = useAppStore((s) => s.setFontSize);
+  const setBorderRadius = useAppStore((s) => s.setBorderRadius);
+  const setEndArrowheadStyle = useAppStore((s) => s.setEndArrowheadStyle);
+  const setStartArrowheadStyle = useAppStore((s) => s.setStartArrowheadStyle);
+  const setConnectorRouting = useAppStore((s) => s.setConnectorRouting);
 
   return (
     <div className={`properties-panel${open ? "" : " properties-panel-closed"}`}>
@@ -89,6 +125,53 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
           </select>
         </div>
       </div>
+
+      {(activeTool === "arrow" || activeTool === "line" || activeTool === "c4-relationship") && (
+        <div className="prop-group">
+          <h3>Arrowhead</h3>
+          <ArrowheadStyleSelect
+            label="Start"
+            value={startArrowheadStyle}
+            onChange={setStartArrowheadStyle}
+          />
+          <ArrowheadStyleSelect
+            label="End"
+            value={endArrowheadStyle}
+            onChange={setEndArrowheadStyle}
+          />
+          <div className="prop-row">
+            <span className="prop-label">Routing</span>
+            <select
+              className="prop-select"
+              value={connectorRouting}
+              onChange={(e) => setConnectorRouting(e.target.value as "free" | "orthogonal")}
+            >
+              <option value="free">Free</option>
+              <option value="orthogonal">Orthogonal</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {(activeTool === "rounded-rectangle" || activeTool === "rectangle") && (
+        <div className="prop-group">
+          <h3>Border Radius</h3>
+          <div className="prop-row">
+            <span className="prop-label">Radius</span>
+            <input
+              className="prop-input"
+              type="range"
+              min={0}
+              max={50}
+              value={borderRadius}
+              onChange={(e) => setBorderRadius(Number(e.target.value))}
+            />
+            <span style={{ fontSize: 12, color: "#aaa", minWidth: 36 }}>
+              {borderRadius}px
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="prop-group">
         <h3>Appearance</h3>

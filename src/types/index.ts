@@ -2,14 +2,18 @@ export type Tool =
   | "select"
   | "hand"
   | "rectangle"
+  | "rounded-rectangle"
   | "ellipse"
   | "diamond"
+  | "star"
+  | "hexagon"
   | "line"
   | "arrow"
   | "freehand"
   | "highlight"
   | "text"
   | "note"
+  | "callout"
   | "mermaid"
   | "c4-person"
   | "c4-software-system"
@@ -22,6 +26,7 @@ export type Tool =
 
 export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none";
 export type StrokeStyle = "solid" | "dashed" | "dotted";
+export type ArrowheadStyle = "none" | "arrow" | "triangle" | "circle" | "diamond" | "bar";
 
 export interface DrawElementBase {
   id: string;
@@ -40,21 +45,23 @@ export interface DrawElementBase {
   rotation: number;
   seed: number;
   groupId?: string;
+  borderRadius?: number;
 }
 
 export interface ShapeElement extends DrawElementBase {
-  type: "rectangle" | "ellipse" | "diamond";
+  type: "rectangle" | "rounded-rectangle" | "ellipse" | "diamond" | "star" | "hexagon";
 }
 
 export interface LineElement extends DrawElementBase {
   type: "line" | "arrow";
   points: [number, number][];
-  endArrowhead: boolean;
-  startArrowhead: boolean;
+  endArrowhead: ArrowheadStyle;
+  startArrowhead: ArrowheadStyle;
   startElementId?: string;
   endElementId?: string;
   startAnchor?: "top" | "right" | "bottom" | "left" | "center";
   endAnchor?: "top" | "right" | "bottom" | "left" | "center";
+  routing?: "free" | "orthogonal";
 }
 
 export interface FreehandElement extends DrawElementBase {
@@ -71,6 +78,13 @@ export interface TextElement extends DrawElementBase {
 
 export interface NoteElement extends DrawElementBase {
   type: "note";
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+}
+
+export interface CalloutElement extends DrawElementBase {
+  type: "callout";
   text: string;
   fontSize: number;
   fontFamily: string;
@@ -119,8 +133,8 @@ export interface C4Element extends DrawElementBase {
 export interface C4RelationshipElement extends DrawElementBase {
   type: "c4-relationship";
   points: [number, number][];
-  endArrowhead: boolean;
-  startArrowhead: boolean;
+  endArrowhead: ArrowheadStyle;
+  startArrowhead: ArrowheadStyle;
   label: string;
   startElementId?: string;
   endElementId?: string;
@@ -128,7 +142,7 @@ export interface C4RelationshipElement extends DrawElementBase {
   endAnchor?: "top" | "right" | "bottom" | "left" | "center";
 }
 
-export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | NoteElement | MermaidElement | C4Element | C4RelationshipElement;
+export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | NoteElement | CalloutElement | MermaidElement | C4Element | C4RelationshipElement;
 
 export interface Page {
   id: string;
@@ -167,6 +181,10 @@ export interface AppState {
   roughness: number;
   opacity: number;
   fontSize: number;
+  borderRadius: number;
+  endArrowheadStyle: ArrowheadStyle;
+  startArrowheadStyle: ArrowheadStyle;
+  connectorRouting: "free" | "orthogonal";
   history: DrawElement[][];
   historyIndex: number;
   clipboard: DrawElement[];
@@ -214,6 +232,10 @@ export interface AppActions {
   setRoughness: (roughness: number) => void;
   setOpacity: (opacity: number) => void;
   setFontSize: (size: number) => void;
+  setBorderRadius: (radius: number) => void;
+  setEndArrowheadStyle: (style: ArrowheadStyle) => void;
+  setStartArrowheadStyle: (style: ArrowheadStyle) => void;
+  setConnectorRouting: (routing: "free" | "orthogonal") => void;
   setShowTextInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setShowMermaidInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
   setShowC4LabelInput: (pos: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null) => void;
