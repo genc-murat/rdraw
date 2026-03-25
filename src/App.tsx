@@ -3,6 +3,7 @@ import Toolbar from "./components/Toolbar";
 import Canvas from "./components/Canvas";
 import PropertiesPanel from "./components/PropertiesPanel";
 import PageTabs from "./components/PageTabs";
+import LibraryPanel from "./components/LibraryPanel";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAutoSave } from "./hooks/useAutoSave";
 import useAppStore from "./store/useAppStore";
@@ -17,6 +18,7 @@ export default function App() {
     <div className="app-container">
       <MenuBar />
       <div className="main-area">
+        <LibraryPanel />
         <Toolbar />
         <Canvas />
         <button

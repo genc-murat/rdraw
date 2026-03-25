@@ -9,3 +9,6 @@ export type { ViewState, ViewActions } from "./useViewStore";
 
 export { createPageSlice, initialPageState } from "./usePageStore";
 export type { PageState, PageActions } from "./usePageStore";
+
+export { createLibrarySlice, initialLibraryState } from "./useLibraryStore";
+export type { LibraryState, LibraryActions } from "./useLibraryStore";

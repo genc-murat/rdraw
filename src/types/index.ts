@@ -201,6 +201,11 @@ export interface AppState {
   pages: Page[];
   activePageId: string;
   pageStateCache: Record<string, PageStateCache>;
+  libraryPanelOpen: boolean;
+  libraryItems: LibraryItem[];
+  remoteLibraries: RemoteLibrary[];
+  searchQuery: string;
+  activeLibraryTab: "local" | "browse";
 }
 
 export interface AppActions {
@@ -261,4 +266,50 @@ export interface AppActions {
   switchPage: (id: string) => void;
   group: () => void;
   ungroup: () => void;
+  toggleLibraryPanel: () => void;
+  addLibraryItem: (item: LibraryItem) => void;
+  removeLibraryItem: (id: string) => void;
+  importLibraryFromFile: (fileContent: string) => void;
+  importRemoteLibrary: (library: RemoteLibrary) => Promise<void>;
+  exportLibrary: () => void;
+  insertLibraryItem: (id: string) => void;
+  insertLibraryItemElements: (elements: DrawElement[]) => void;
+  setSearchQuery: (query: string) => void;
+  setActiveLibraryTab: (tab: "local" | "browse") => void;
+  fetchRemoteLibraries: () => Promise<void>;
+}
+
+// Library types
+export interface LibraryItem {
+  id: string;
+  name: string;
+  elements: DrawElement[];
+  created: number;
+  status: "published" | "unpublished";
+  author?: string;
+  category?: string;
+}
+
+export interface LibraryFile {
+  type: "excalidrawlib";
+  version: number;
+  libraryItems: LibraryItem[];
+}
+
+export interface RemoteLibraryAuthor {
+  name: string;
+  url?: string;
+}
+
+export interface RemoteLibrary {
+  name: string;
+  authors: RemoteLibraryAuthor[];
+  source: string;
+  preview?: string;
+  total: number;
+  created: number;
+  updated: number;
+  description?: string;
+  items?: LibraryItem[];
+  loading?: boolean;
 }

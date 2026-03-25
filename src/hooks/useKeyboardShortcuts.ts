@@ -24,6 +24,7 @@ export function useKeyboardShortcuts() {
     createPage,
     group,
     ungroup,
+    toggleLibraryPanel,
   } = useAppStore();
 
   const handleKeyDown = useCallback(
@@ -109,8 +110,14 @@ export function useKeyboardShortcuts() {
         const state = useAppStore.getState();
         // Don't clear selection if an overlay is open - let the overlay handle Escape
         if (state.showTextInput || state.showMermaidInput || state.showC4LabelInput) return;
+        if (state.libraryPanelOpen) {
+          toggleLibraryPanel();
+          return;
+        }
         state.clearSelection();
         setTool("select");
+      } else if (e.key === "9") {
+        toggleLibraryPanel();
       } else if (e.key === "v" || e.key === "V") {
         setTool("select");
       } else if (e.shiftKey && (e.key === "r" || e.key === "R")) {
@@ -165,7 +172,7 @@ export function useKeyboardShortcuts() {
         bringToFront();
       }
     },
-    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage, group, ungroup]
+    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage, group, ungroup, toggleLibraryPanel]
   );
 
   useEffect(() => {

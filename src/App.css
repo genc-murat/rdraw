@@ -947,3 +947,350 @@ html, body, #root {
   padding: 6px 12px;
   border-top: 1px solid var(--border-secondary);
 }
+
+/* Library Panel */
+.library-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background: var(--surface-primary);
+  border-right: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  box-shadow: 4px 0 12px var(--shadow-color);
+}
+
+.library-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.library-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.library-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.library-action-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.library-action-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.library-action-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.library-action-btn:disabled:hover {
+  background: transparent;
+}
+
+.library-close-btn:hover {
+  color: #fa5252;
+}
+
+.library-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.library-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.library-tab:hover {
+  color: var(--text-primary);
+}
+
+.library-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.library-search {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.library-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.library-search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.library-search-clear {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.library-search-clear:hover {
+  background: var(--surface-hover-strong);
+  color: var(--text-primary);
+}
+
+.library-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.library-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  gap: 8px;
+}
+
+.library-empty p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.library-empty-hint {
+  font-size: 11px !important;
+  color: var(--text-dim) !important;
+  line-height: 1.5;
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.library-item-card {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.library-item-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.library-item-preview {
+  display: block;
+  background: var(--canvas-bg);
+  border-radius: 6px 6px 0 0;
+}
+
+.library-item-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--canvas-bg);
+  color: var(--text-dim);
+  font-size: 11px;
+  border-radius: 6px 6px 0 0;
+}
+
+.library-item-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 6px;
+  gap: 4px;
+}
+
+.library-item-name {
+  font-size: 10px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.library-item-delete {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.library-item-card:hover .library-item-delete {
+  opacity: 1;
+}
+
+.library-item-delete:hover {
+  background: rgba(250, 82, 82, 0.2);
+  color: #fa5252;
+}
+
+/* Remote Library */
+.library-remote-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.library-remote-pack {
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.library-remote-pack-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  background: var(--surface-secondary);
+  gap: 8px;
+}
+
+.library-remote-pack-header:hover {
+  background: var(--surface-hover);
+}
+
+.library-remote-pack-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.library-remote-pack-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-remote-pack-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.library-remote-pack-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.library-import-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.library-import-btn:hover {
+  background: var(--accent-bg);
+}
+
+.library-chevron {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+.library-chevron.open {
+  transform: rotate(90deg);
+}
+
+.library-loading {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.library-remote-pack-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}
