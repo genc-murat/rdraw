@@ -24,7 +24,7 @@ export type Tool =
   | "c4-enterprise-boundary"
   | "c4-relationship";
 
-export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none";
+export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none" | "zigzag" | "dots" | "dashed" | "zigzag-line";
 export type StrokeStyle = "solid" | "dashed" | "dotted";
 export type ArrowheadStyle = "none" | "arrow" | "triangle" | "circle" | "diamond" | "bar";
 

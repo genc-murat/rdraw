@@ -95,6 +95,10 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
             <option value="solid">Solid</option>
             <option value="hachure">Hachure</option>
             <option value="cross-hatch">Cross-hatch</option>
+            <option value="zigzag">Zigzag</option>
+            <option value="dots">Dots</option>
+            <option value="dashed">Dashed</option>
+            <option value="zigzag-line">Zigzag Line</option>
           </select>
         </div>
       </div>
