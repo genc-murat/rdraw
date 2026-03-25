@@ -616,3 +616,142 @@ html, body, #root {
   color: var(--text-dim);
   margin-left: auto;
 }
+
+/* Page Tabs */
+.page-tabs {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--surface-primary);
+  border-top: 1px solid var(--border-primary);
+  padding: 0 8px;
+  gap: 2px;
+  flex-shrink: 0;
+  user-select: none;
+  overflow: hidden;
+}
+
+.page-tabs-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.page-tabs-list::-webkit-scrollbar {
+  height: 0;
+}
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.page-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.page-tab-active {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+
+.page-tab-drop-target {
+  border-left: 2px solid var(--accent);
+}
+
+.page-tab-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-tab-badge {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--surface-hover);
+  padding: 1px 5px;
+  border-radius: 8px;
+  line-height: 1.2;
+}
+
+.page-tab-rename-input {
+  background: var(--surface-hover);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 2px 4px;
+  width: 80px;
+  outline: none;
+}
+
+.page-tab-add {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.page-tab-add:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.page-tab-context-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+}
+
+.page-tab-context-menu {
+  position: fixed;
+  z-index: 1002;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  min-width: 140px;
+}
+
+.page-tab-context-item {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.page-tab-context-item:hover {
+  background: var(--accent-bg);
+}
+
+.page-tab-context-item-danger:hover {
+  background: #5a1d1d;
+  color: #ff6b6b;
+}

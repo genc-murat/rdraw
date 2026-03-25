@@ -16,6 +16,7 @@ export function useKeyboardShortcuts() {
     bringToFront,
     sendToBack,
     resetView,
+    createPage,
   } = useAppStore();
 
   const handleKeyDown = useCallback(
@@ -33,6 +34,9 @@ export function useKeyboardShortcuts() {
       } else if (ctrl && (e.key === "Z" || (e.key === "z" && e.shiftKey) || e.key === "y")) {
         e.preventDefault();
         redo();
+      } else if (ctrl && e.shiftKey && (e.key === "N" || e.key === "n")) {
+        e.preventDefault();
+        createPage();
       } else if (ctrl && e.key === "c") {
         e.preventDefault();
         copy();
@@ -86,7 +90,7 @@ export function useKeyboardShortcuts() {
         bringToFront();
       }
     },
-    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView]
+    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage]
   );
 
   useEffect(() => {

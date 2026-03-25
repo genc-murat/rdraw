@@ -3,6 +3,7 @@ import MenuBar from "./components/MenuBar";
 import Toolbar from "./components/Toolbar";
 import Canvas from "./components/Canvas";
 import PropertiesPanel from "./components/PropertiesPanel";
+import PageTabs from "./components/PageTabs";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
         </button>
         <PropertiesPanel open={panelOpen} />
       </div>
+      <PageTabs />
     </div>
   );
 }

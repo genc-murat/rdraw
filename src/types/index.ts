@@ -80,11 +80,25 @@ export interface MermaidElement extends DrawElementBase {
 
 export type DrawElement = ShapeElement | LineElement | FreehandElement | TextElement | MermaidElement;
 
+export interface Page {
+  id: string;
+  name: string;
+  elements: DrawElement[];
+}
+
 export interface ViewTransform {
   x: number;
   y: number;
   zoom: number;
 }
+
+export type PageStateCache = {
+  elements: DrawElement[];
+  selectedIds: string[];
+  viewTransform: ViewTransform;
+  history: DrawElement[][];
+  historyIndex: number;
+};
 
 export interface AppState {
   elements: DrawElement[];
@@ -111,6 +125,9 @@ export interface AppState {
   showMermaidInput: { x: number; y: number; screenX: number; screenY: number; editId?: string } | null;
   showGrid: boolean;
   theme: "dark" | "light";
+  pages: Page[];
+  activePageId: string;
+  pageStateCache: Record<string, PageStateCache>;
 }
 
 export interface AppActions {
@@ -154,4 +171,10 @@ export interface AppActions {
   toggleGrid: () => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
+  createPage: (name?: string) => void;
+  deletePage: (id: string) => void;
+  renamePage: (id: string, name: string) => void;
+  duplicatePage: (id: string) => void;
+  reorderPage: (fromIndex: number, toIndex: number) => void;
+  switchPage: (id: string) => void;
 }

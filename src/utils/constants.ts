@@ -25,3 +25,6 @@ export const HIGHLIGHT_COLORS = [
 export const DEFAULT_HIGHLIGHT_COLOR = "#ffeb3b";
 export const DEFAULT_HIGHLIGHT_STROKE_WIDTH = 16;
 export const DEFAULT_HIGHLIGHT_OPACITY = 0.35;
+
+export const DEFAULT_PAGE_NAME = "Page 1";
+export const MAX_PAGES = 40;

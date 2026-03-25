@@ -8,3 +8,7 @@ export function generateId(): string {
 export function generateSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
 }
+
+export function generatePageId(): string {
+  return "page-" + generateId();
+}

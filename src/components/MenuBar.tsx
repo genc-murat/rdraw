@@ -18,6 +18,8 @@ export default function MenuBar() {
   const menuBarRef = useRef<HTMLDivElement>(null);
 
   const elements = useAppStore((s) => s.elements);
+  const pages = useAppStore((s) => s.pages);
+  const activePageId = useAppStore((s) => s.activePageId);
   const setElements = useAppStore((s) => s.setElements);
   const clearAll = useAppStore((s) => s.clearAll);
   const filePath = useAppStore((s) => s.filePath);
@@ -68,20 +70,37 @@ export default function MenuBar() {
     closeSidebar();
     const result = await loadDrawing();
     if (result) {
-      setElements(result.elements);
+      const state = useAppStore.getState();
+      state.clearAll();
+      // Directly set pages and activePageId
+      useAppStore.setState({
+        pages: result.pages,
+        activePageId: result.activePageId,
+      });
+      // Load the active page's elements
+      const activePage = result.pages.find((p) => p.id === result.activePageId);
+      setElements(activePage ? activePage.elements : []);
       setFilePath(result.path);
     }
   };
 
   const handleSave = async () => {
     closeSidebar();
-    const path = await saveDrawing(elements, filePath);
+    const state = useAppStore.getState();
+    const pagesToSave = state.pages.map((p) =>
+      p.id === state.activePageId ? { ...p, elements: state.elements } : p
+    );
+    const path = await saveDrawing(pagesToSave, state.activePageId, filePath);
     if (path) setFilePath(path);
   };
 
   const handleSaveAs = async () => {
     closeSidebar();
-    const path = await saveDrawing(elements);
+    const state = useAppStore.getState();
+    const pagesToSave = state.pages.map((p) =>
+      p.id === state.activePageId ? { ...p, elements: state.elements } : p
+    );
+    const path = await saveDrawing(pagesToSave, state.activePageId);
     if (path) setFilePath(path);
   };
 

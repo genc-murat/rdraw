@@ -1,25 +1,33 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
-import type { DrawElement, MermaidElement } from "../types";
+import type { DrawElement, MermaidElement, Page } from "../types";
 
-export interface DrawingData {
-  version: number;
+export interface DrawingDataV1 {
+  version: 1;
   elements: DrawElement[];
 }
 
-export async function saveDrawing(elements: DrawElement[], filePath?: string | null): Promise<string | null> {
+export interface DrawingDataV2 {
+  version: 2;
+  pages: Page[];
+  activePageId: string;
+}
+
+export type DrawingData = DrawingDataV1 | DrawingDataV2;
+
+export async function saveDrawing(pages: Page[], activePageId: string, filePath?: string | null): Promise<string | null> {
   const path = filePath || await save({
     filters: [{ name: "RDraw", extensions: ["rdraw.json"] }],
   });
 
   if (!path) return null;
 
-  const data: DrawingData = { version: 1, elements };
+  const data: DrawingDataV2 = { version: 2, pages, activePageId };
   await invoke("save_file", { path, content: JSON.stringify(data, null, 2) });
   return path;
 }
 
-export async function loadDrawing(): Promise<{ path: string; elements: DrawElement[] } | null> {
+export async function loadDrawing(): Promise<{ path: string; pages: Page[]; activePageId: string } | null> {
   const path = await open({
     filters: [{ name: "RDraw", extensions: ["rdraw.json", "json"] }],
   });
@@ -28,7 +36,19 @@ export async function loadDrawing(): Promise<{ path: string; elements: DrawEleme
 
   const content = await invoke<string>("open_file", { path });
   const data: DrawingData = JSON.parse(content);
-  return { path, elements: data.elements || [] };
+
+  if (data.version === 2 && "pages" in data) {
+    return { path, pages: data.pages, activePageId: data.activePageId };
+  }
+
+  // v1 migration
+  const v1 = data as DrawingDataV1;
+  const elements = v1.elements || [];
+  return {
+    path,
+    pages: [{ id: "page-default", name: "Page 1", elements }],
+    activePageId: "page-default",
+  };
 }
 
 export async function exportPNG(canvas: HTMLCanvasElement): Promise<void> {
