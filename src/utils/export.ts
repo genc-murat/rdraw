@@ -23,8 +23,13 @@ export async function saveDrawing(pages: Page[], activePageId: string, filePath?
   if (!path) return null;
 
   const data: DrawingDataV2 = { version: 2, pages, activePageId };
-  await invoke("save_file", { path, content: JSON.stringify(data, null, 2) });
-  return path;
+  try {
+    await invoke("save_file", { path, content: JSON.stringify(data, null, 2) });
+    return path;
+  } catch (err) {
+    alert("Failed to save: " + (err instanceof Error ? err.message : String(err)));
+    return null;
+  }
 }
 
 export async function loadDrawing(): Promise<{ path: string; pages: Page[]; activePageId: string } | null> {
@@ -34,8 +39,21 @@ export async function loadDrawing(): Promise<{ path: string; pages: Page[]; acti
 
   if (!path || Array.isArray(path)) return null;
 
-  const content = await invoke<string>("open_file", { path });
-  const data: DrawingData = JSON.parse(content);
+  let content: string;
+  try {
+    content = await invoke<string>("open_file", { path });
+  } catch (err) {
+    alert("Failed to open file: " + (err instanceof Error ? err.message : String(err)));
+    return null;
+  }
+
+  let data: DrawingData;
+  try {
+    data = JSON.parse(content);
+  } catch (err) {
+    alert("Failed to parse drawing file: " + (err instanceof Error ? err.message : String(err)));
+    return null;
+  }
 
   if (data.version === 2 && "pages" in data) {
     return { path, pages: data.pages, activePageId: data.activePageId };
@@ -58,13 +76,22 @@ export async function exportPNG(canvas: HTMLCanvasElement): Promise<void> {
 
   if (!path) return;
 
-  const blob = await new Promise<Blob>((resolve) => {
-    canvas.toBlob((b) => resolve(b!), "image/png");
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), "image/png");
   });
 
-  const buffer = await blob.arrayBuffer();
-  const data = Array.from(new Uint8Array(buffer));
-  await invoke("export_image", { path, data });
+  if (!blob) {
+    alert("Failed to create PNG: canvas export returned null");
+    return;
+  }
+
+  try {
+    const buffer = await blob.arrayBuffer();
+    const data = Array.from(new Uint8Array(buffer));
+    await invoke("export_image", { path, data });
+  } catch (err) {
+    alert("Failed to export PNG: " + (err instanceof Error ? err.message : String(err)));
+  }
 }
 
 export async function exportSVG(
@@ -77,8 +104,12 @@ export async function exportSVG(
 
   if (!path) return;
 
-  const svgContent = generateSVG(elements);
-  await invoke("export_svg", { path, content: svgContent });
+  try {
+    const svgContent = generateSVG(elements);
+    await invoke("export_svg", { path, content: svgContent });
+  } catch (err) {
+    alert("Failed to export SVG: " + (err instanceof Error ? err.message : String(err)));
+  }
 }
 
 function generateSVG(elements: DrawElement[]): string {

@@ -182,10 +182,29 @@ export function canvasToScreen(
   };
 }
 
-export function measureText(text: string, fontSize: number): { width: number; height: number } {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d")!;
-  ctx.font = `${fontSize}px sans-serif`;
+let _measureCanvas: HTMLCanvasElement | null = null;
+let _measureCtx: CanvasRenderingContext2D | null = null;
+let _measureFont = "";
+
+function getMeasureCtx(): CanvasRenderingContext2D {
+  if (!_measureCtx) {
+    _measureCanvas = document.createElement("canvas");
+    _measureCtx = _measureCanvas.getContext("2d")!;
+  }
+  return _measureCtx;
+}
+
+export function measureText(
+  text: string,
+  fontSize: number,
+  fontFamily: string = "sans-serif"
+): { width: number; height: number } {
+  const ctx = getMeasureCtx();
+  const font = `${fontSize}px ${fontFamily}`;
+  if (font !== _measureFont) {
+    ctx.font = font;
+    _measureFont = font;
+  }
   const lines = text.split("\n");
   let maxWidth = 0;
   for (const line of lines) {

@@ -5,9 +5,11 @@ import Canvas from "./components/Canvas";
 import PropertiesPanel from "./components/PropertiesPanel";
 import PageTabs from "./components/PageTabs";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useAutoSave } from "./hooks/useAutoSave";
 
 export default function App() {
   useKeyboardShortcuts();
+  useAutoSave();
   const [panelOpen, setPanelOpen] = useState(false);
 
   return (

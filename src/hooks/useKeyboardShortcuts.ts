@@ -1,5 +1,10 @@
 import { useEffect, useCallback } from "react";
 import useAppStore from "../store/useAppStore";
+import { updateConnectorPoints } from "../utils/connectors";
+import type { LineElement } from "../types";
+
+const NUDGE_STEP = 1;
+const NUDGE_STEP_SHIFT = 10;
 
 export function useKeyboardShortcuts() {
   const {
@@ -66,9 +71,45 @@ export function useKeyboardShortcuts() {
       } else if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         removeElements(selectedIds);
+      } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        const step = e.shiftKey ? NUDGE_STEP_SHIFT : NUDGE_STEP;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === "ArrowUp") dy = -step;
+        else if (e.key === "ArrowDown") dy = step;
+        else if (e.key === "ArrowLeft") dx = -step;
+        else if (e.key === "ArrowRight") dx = step;
+        const state = useAppStore.getState();
+        state.pushHistory();
+        for (const id of selectedIds) {
+          const el = state.elements.find((e) => e.id === id);
+          if (!el) continue;
+          if (el.type === "line" || el.type === "arrow" || el.type === "c4-relationship" || el.type === "freehand") {
+            state.updateElement(id, { x: el.x + dx, y: el.y + dy } as any);
+          } else {
+            state.updateElement(id, { x: el.x + dx, y: el.y + dy } as any);
+          }
+        }
+        // Update connected arrows
+        const movedIds = new Set(selectedIds);
+        for (const el of state.elements) {
+          if ((el.type === "arrow" || el.type === "line" || el.type === "c4-relationship") &&
+              ((el as LineElement).startElementId && movedIds.has((el as LineElement).startElementId!) ||
+               (el as LineElement).endElementId && movedIds.has((el as LineElement).endElementId!))) {
+            const updates = updateConnectorPoints(el as LineElement, state.elements);
+            if (updates) {
+              state.updateElement(el.id, updates as any);
+            }
+          }
+        }
       } else if (e.key === "Escape") {
         e.preventDefault();
-        useAppStore.getState().clearSelection();
+        const state = useAppStore.getState();
+        // Don't clear selection if an overlay is open - let the overlay handle Escape
+        if (state.showTextInput || state.showMermaidInput || state.showC4LabelInput) return;
+        state.clearSelection();
         setTool("select");
       } else if (e.key === "v" || e.key === "V") {
         setTool("select");

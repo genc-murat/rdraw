@@ -602,6 +602,10 @@ html, body, #root {
   z-index: 10;
 }
 
+.minimap-wrapper.minimap-dragging {
+  cursor: grabbing;
+}
+
 .minimap-container {
   position: absolute;
   inset: 0;

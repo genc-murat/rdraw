@@ -43,15 +43,46 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
   const selectionBoxStartRef = useRef<{ x: number; y: number } | null>(null);
   const guideLinesRef = useRef<GuideLine[]>([]);
   const anchorHitRef = useRef<{ elementId: string; anchor: string; x: number; y: number } | null>(null);
+  const drawDirtyRef = useRef(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.code === "Space") spaceDownRef.current = true; };
     const onKeyUp = (e: KeyboardEvent) => { if (e.code === "Space") spaceDownRef.current = false; };
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        const state = store.getState();
+        if (state.isDrawing && tempElementRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          tempElementRef.current = null;
+          // Undo the history push that happened when drawing started
+          state.undo();
+          state.setIsDrawing(false);
+          state.setDrawStart(null);
+        }
+        if (dragStartRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          state.undo();
+          dragStartRef.current = null;
+          guideLinesRef.current = [];
+        }
+        if (resizeHandleRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          state.undo();
+          resizeHandleRef.current = null;
+          resizeStartRef.current = null;
+        }
+      }
+    };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keydown", onEscape, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keydown", onEscape, true);
     };
   }, []);
 
@@ -501,6 +532,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           width: Math.abs(w),
           height: Math.abs(h),
         } as ShapeElement;
+        drawDirtyRef.current = true;
       } else if (tempElementRef.current.type === "line" || tempElementRef.current.type === "arrow" || tempElementRef.current.type === "c4-relationship") {
         let dx = point.x - start.x;
         let dy = point.y - start.y;
@@ -530,6 +562,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           ...el,
           points: [[0, 0], [dx, dy]],
         } as LineElement;
+        drawDirtyRef.current = true;
       } else if (tempElementRef.current.type === "freehand") {
         const el = tempElementRef.current as FreehandElement;
         const newPoint: [number, number] = [point.x - start.x, point.y - start.y];
@@ -537,7 +570,11 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
         const dx = newPoint[0] - lastPoint[0];
         const dy = newPoint[1] - lastPoint[1];
         if (dx * dx + dy * dy >= 16) {
-          el.points.push(newPoint);
+          tempElementRef.current = {
+            ...el,
+            points: [...el.points, newPoint],
+          } as FreehandElement;
+          drawDirtyRef.current = true;
         }
       }
     },
@@ -703,5 +740,5 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
     };
   }, [canvasRef, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel]);
 
-  return { tempElementRef, selectionBoxRef, guideLinesRef };
+  return { tempElementRef, selectionBoxRef, guideLinesRef, drawDirtyRef };
 }

@@ -6,7 +6,7 @@ import { measureText, pointInElement } from "../utils/geometry";
 import { parseMermaidCode, renderMermaidDiagram } from "../utils/mermaid";
 import { DEFAULT_FONT_FAMILY, NOTE_PADDING_X, NOTE_PADDING_Y } from "../utils/constants";
 import { generateId, generateSeed } from "../utils/ids";
-import type { MermaidElement, NoteElement, C4Element } from "../types";
+import type { MermaidElement, NoteElement, C4Element, TextElement } from "../types";
 import ZoomControls from "./ZoomControls";
 import Minimap from "./Minimap";
 
@@ -28,7 +28,7 @@ export default function Canvas() {
   const setShowC4LabelInput = useAppStore((s) => s.setShowC4LabelInput);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
-  const { tempElementRef, selectionBoxRef, guideLinesRef } = useCanvasEvents(canvasRef);
+  const { tempElementRef, selectionBoxRef, guideLinesRef, drawDirtyRef } = useCanvasEvents(canvasRef);
 
   // Resize canvas
   useEffect(() => {
@@ -68,8 +68,9 @@ export default function Canvas() {
     const render = () => {
       if (!running) return;
 
-      if (needsRender || isDrawing) {
+      if (needsRender || (isDrawing && drawDirtyRef.current)) {
         needsRender = false;
+        if (isDrawing) drawDirtyRef.current = false;
 
         const allElements = tempElementRef.current
           ? [...elements, tempElementRef.current]
@@ -155,11 +156,26 @@ export default function Canvas() {
           useAppStore.getState().removeElement(showTextInput.editId);
         } else {
           const noteEl = el as NoteElement;
-          const measured = measureText(text, noteEl.fontSize);
+          const measured = measureText(text, noteEl.fontSize, noteEl.fontFamily);
           useAppStore.getState().updateElement(showTextInput.editId, {
             text,
             width: Math.max(noteEl.width, measured.width + NOTE_PADDING_X * 2),
             height: Math.max(noteEl.height, measured.height + NOTE_PADDING_Y * 2),
+          } as any);
+        }
+        setShowTextInput(null);
+        return;
+      }
+      if (el && el.type === "text") {
+        if (!text.trim()) {
+          useAppStore.getState().removeElement(showTextInput.editId);
+        } else {
+          const textEl = el as TextElement;
+          const measured = measureText(text, textEl.fontSize, textEl.fontFamily);
+          useAppStore.getState().updateElement(showTextInput.editId, {
+            text,
+            width: measured.width,
+            height: measured.height,
           } as any);
         }
         setShowTextInput(null);
@@ -265,6 +281,16 @@ export default function Canvas() {
       const y = (e.clientY - rect.top - state.viewTransform.y) / state.viewTransform.zoom;
 
       for (const el of [...state.elements].reverse()) {
+        if (el.type === "text" && pointInElement(x, y, el)) {
+          state.setShowTextInput({
+            x: el.x,
+            y: el.y,
+            screenX: e.clientX,
+            screenY: e.clientY,
+            editId: el.id,
+          });
+          return;
+        }
         if (el.type === "note" && pointInElement(x, y, el)) {
           state.setShowTextInput({
             x: el.x,
@@ -314,6 +340,15 @@ export default function Canvas() {
         <TextInputOverlay
           x={showTextInput.screenX}
           y={showTextInput.screenY}
+          initialValue={
+            showTextInput.editId
+              ? (() => {
+                  const el = useAppStore.getState().elements.find((e) => e.id === showTextInput.editId);
+                  if (el && (el.type === "text" || el.type === "note")) return (el as TextElement).text;
+                  return "";
+                })()
+              : ""
+          }
           onSubmit={handleTextInputSubmit}
           onCancel={() => setShowTextInput(null)}
         />
@@ -367,11 +402,13 @@ export default function Canvas() {
 function TextInputOverlay({
   x,
   y,
+  initialValue,
   onSubmit,
   onCancel,
 }: {
   x: number;
   y: number;
+  initialValue?: string;
   onSubmit: (text: string) => void;
   onCancel: () => void;
 }) {
@@ -381,6 +418,10 @@ function TextInputOverlay({
   useEffect(() => {
     requestAnimationFrame(() => {
       ref.current?.focus();
+      if (ref.current && initialValue) {
+        ref.current.value = initialValue;
+        ref.current.setSelectionRange(initialValue.length, initialValue.length);
+      }
     });
   }, []);
 
@@ -393,6 +434,7 @@ function TextInputOverlay({
         top: y,
         fontSize: `${fontSize}px`,
       }}
+      defaultValue={initialValue || ""}
       onBlur={(e) => {
         if (e.target.value.trim()) {
           onSubmit(e.target.value);
