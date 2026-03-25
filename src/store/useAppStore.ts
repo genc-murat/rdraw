@@ -9,6 +9,9 @@ import {
   DEFAULT_ROUGHNESS,
   DEFAULT_OPACITY,
   DEFAULT_FONT_SIZE,
+  DEFAULT_HIGHLIGHT_COLOR,
+  DEFAULT_HIGHLIGHT_STROKE_WIDTH,
+  DEFAULT_HIGHLIGHT_OPACITY,
   HISTORY_LIMIT,
 } from "../utils/constants";
 
@@ -40,7 +43,19 @@ const useAppStore = create<Store>((set, get) => ({
   showGrid: true,
   theme: "dark" as "dark" | "light",
 
-  setTool: (tool) => set({ activeTool: tool, selectedIds: [] }),
+  setTool: (tool) => {
+    const updates: Record<string, any> = { activeTool: tool, selectedIds: [] };
+    if (tool === "highlight") {
+      updates.strokeColor = DEFAULT_HIGHLIGHT_COLOR;
+      updates.strokeWidth = DEFAULT_HIGHLIGHT_STROKE_WIDTH;
+      updates.opacity = DEFAULT_HIGHLIGHT_OPACITY;
+    } else {
+      updates.strokeColor = DEFAULT_STROKE_COLOR;
+      updates.strokeWidth = DEFAULT_STROKE_WIDTH;
+      updates.opacity = DEFAULT_OPACITY;
+    }
+    set(updates);
+  },
 
   addElement: (element) =>
     set((state) => ({ elements: [...state.elements, element] })),

@@ -10,6 +10,7 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: "line", label: "Line (L)", icon: "╱" },
   { id: "arrow", label: "Arrow (A)", icon: "→" },
   { id: "freehand", label: "Freehand (P)", icon: "✎" },
+  { id: "highlight", label: "Highlight (G)", icon: "🖍" },
   { id: "text", label: "Text (T)", icon: "T" },
   { id: "mermaid", label: "Mermaid (M)", icon: "⌥" },
 ];
@@ -44,7 +45,7 @@ export default function Toolbar() {
       <button
         className={`tool-btn ${showGrid ? "active" : ""}`}
         onClick={toggleGrid}
-        title="Toggle Grid (G)"
+        title="Toggle Grid"
       >
         <span style={{ fontSize: "16px", lineHeight: 1 }}>⊞</span>
       </button>

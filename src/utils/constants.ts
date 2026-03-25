@@ -17,3 +17,11 @@ export const COLORS = [
   "#a5d8ff", "#99e9f2", "#96f2d7", "#b2f2bb", "#d8f5a2",
   "#ffec99", "#ffe066", "#ffd43b", "#fcc419", "#ffa94d",
 ];
+
+export const HIGHLIGHT_COLORS = [
+  "#ffeb3b", "#69f0ae", "#ff4081", "#ffab40", "#40c4ff", "#ff5252",
+];
+
+export const DEFAULT_HIGHLIGHT_COLOR = "#ffeb3b";
+export const DEFAULT_HIGHLIGHT_STROKE_WIDTH = 16;
+export const DEFAULT_HIGHLIGHT_OPACITY = 0.35;

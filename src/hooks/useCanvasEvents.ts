@@ -178,7 +178,7 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
           startArrowhead: false,
         };
         tempElementRef.current = el;
-      } else if (state.activeTool === "freehand") {
+      } else if (state.activeTool === "freehand" || state.activeTool === "highlight") {
         const el: FreehandElement = {
           id: generateId(),
           type: "freehand",

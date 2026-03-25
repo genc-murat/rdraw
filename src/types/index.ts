@@ -7,6 +7,7 @@ export type Tool =
   | "line"
   | "arrow"
   | "freehand"
+  | "highlight"
   | "text"
   | "mermaid";
 

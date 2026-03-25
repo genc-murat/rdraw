@@ -1,6 +1,7 @@
 import useAppStore from "../store/useAppStore";
 import type { FillStyle, StrokeStyle } from "../types";
 import ColorPicker from "./ColorPicker";
+import { HIGHLIGHT_COLORS } from "../utils/constants";
 
 export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const strokeColor = useAppStore((s) => s.strokeColor);
@@ -11,6 +12,7 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
   const roughness = useAppStore((s) => s.roughness);
   const opacity = useAppStore((s) => s.opacity);
   const fontSize = useAppStore((s) => s.fontSize);
+  const activeTool = useAppStore((s) => s.activeTool);
 
   const setStrokeColor = useAppStore((s) => s.setStrokeColor);
   const setFillColor = useAppStore((s) => s.setFillColor);
@@ -23,6 +25,22 @@ export default function PropertiesPanel({ open = true }: { open?: boolean }) {
 
   return (
     <div className={`properties-panel${open ? "" : " properties-panel-closed"}`}>
+      {activeTool === "highlight" && (
+        <div className="prop-group">
+          <h3>Highlight Color</h3>
+          <div className="prop-row" style={{ gap: 6, flexWrap: "wrap" }}>
+            {HIGHLIGHT_COLORS.map((c) => (
+              <div
+                key={c}
+                className={`color-swatch${strokeColor === c ? " selected" : ""}`}
+                style={{ background: c, width: 28, height: 28, cursor: "pointer", borderRadius: 4 }}
+                onClick={() => setStrokeColor(c)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="prop-group">
         <h3>Colors</h3>
         <ColorPicker color={strokeColor} onChange={setStrokeColor} label="Stroke" />
