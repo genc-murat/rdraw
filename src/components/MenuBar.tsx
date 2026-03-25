@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import useAppStore from "../store/useAppStore";
 import { saveDrawing, loadDrawing, exportPNG, exportSVG } from "../utils/export";
 
@@ -38,6 +39,20 @@ export default function MenuBar() {
   const toggleGrid = useAppStore((s) => s.toggleGrid);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    getCurrentWindow().isMaximized().then(setIsMaximized);
+    const unlisten = getCurrentWindow().onResized(() => {
+      getCurrentWindow().isMaximized().then(setIsMaximized);
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
+  const handleMinimize = () => getCurrentWindow().minimize();
+  const handleToggleMaximize = () => getCurrentWindow().toggleMaximize();
+  const handleClose = () => getCurrentWindow().close();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -177,11 +192,37 @@ export default function MenuBar() {
           <span className="hamburger-line" />
           <span className="hamburger-line" />
         </button>
-        {filePath && (
-          <span className="menu-bar-filename">
-            {filePath.split("/").pop()}
-          </span>
-        )}
+        <div className="menu-bar-drag-region" data-tauri-drag-region>
+          {filePath && (
+            <span className="menu-bar-filename">
+              {filePath.split("/").pop()}
+            </span>
+          )}
+        </div>
+        <div className="window-controls">
+          <button className="window-control-btn" onClick={handleMinimize} aria-label="Minimize">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+          </button>
+          <button className="window-control-btn" onClick={handleToggleMaximize} aria-label={isMaximized ? "Restore" : "Maximize"}>
+            {isMaximized ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M4.5 4.5h7v7h-7z" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M4.5 6.5v-2h2" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="3.5" y="3.5" width="9" height="9" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            )}
+          </button>
+          <button className="window-control-btn window-control-btn-close" onClick={handleClose} aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {sidebarOpen && <div className="sidebar-overlay" />}
