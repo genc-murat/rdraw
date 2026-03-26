@@ -16,6 +16,8 @@ export interface ViewState {
   panelOpen: boolean;
   panelPosition: { x: number; y: number };
   theme: "dark" | "light" | "paper";
+  presentationMode: boolean;
+  presentationSlideIndex: number;
 }
 
 export interface ViewActions {
@@ -36,6 +38,10 @@ export interface ViewActions {
   setPanelPosition: (pos: { x: number; y: number }) => void;
   setTheme: (theme: "dark" | "light" | "paper") => void;
   toggleTheme: () => void;
+  startPresentation: () => void;
+  exitPresentation: () => void;
+  nextSlide: () => void;
+  prevSlide: () => void;
 }
 
 export const initialViewState: ViewState = {
@@ -53,9 +59,11 @@ export const initialViewState: ViewState = {
   panelOpen: false,
   panelPosition: { x: typeof window !== "undefined" ? window.innerWidth - 252 : 800, y: 12 },
   theme: "dark",
+  presentationMode: false,
+  presentationSlideIndex: 0,
 };
 
-export const createViewSlice: StoreCreator<ViewState & ViewActions> = (set) => ({
+export const createViewSlice: StoreCreator<ViewState & ViewActions> = (set, get) => ({
   ...initialViewState,
 
   setViewTransform: (transform) =>
@@ -98,5 +106,79 @@ export const createViewSlice: StoreCreator<ViewState & ViewActions> = (set) => (
       document.body.classList.toggle("light-theme", next === "light");
       document.body.classList.toggle("paper-theme", next === "paper");
       return { theme: next };
+    }),
+
+  startPresentation: () => {
+    const state = (get as any)();
+    const pageIdx = state.pages.findIndex((p: any) => p.id === state.activePageId);
+    set({ presentationMode: true, presentationSlideIndex: pageIdx >= 0 ? pageIdx : 0 });
+  },
+
+  exitPresentation: () => set({ presentationMode: false }),
+
+  nextSlide: () =>
+    set((state: any) => {
+      const pageIdx = state.pages.findIndex((p: any) => p.id === state.activePageId);
+      if (pageIdx < state.pages.length - 1) {
+        const nextIdx = pageIdx + 1;
+        const nextPage = state.pages[nextIdx];
+        // Save current page state
+        const pages = [...state.pages];
+        pages[pageIdx] = { ...pages[pageIdx], elements: state.elements };
+        const cache = { ...state.pageStateCache };
+        cache[state.activePageId] = {
+          elements: state.elements,
+          selectedIds: state.selectedIds,
+          viewTransform: state.viewTransform,
+          history: state.history,
+          historyIndex: state.historyIndex,
+        };
+        const cached = cache[nextPage.id];
+        return {
+          pages,
+          activePageId: nextPage.id,
+          pageStateCache: cache,
+          elements: cached ? cached.elements : nextPage.elements,
+          selectedIds: [],
+          viewTransform: cached ? cached.viewTransform : { x: 0, y: 0, zoom: 1 },
+          history: cached ? cached.history : [nextPage.elements ? [...nextPage.elements] : []],
+          historyIndex: cached ? cached.historyIndex : 0,
+          presentationSlideIndex: nextIdx,
+        };
+      }
+      return state;
+    }),
+
+  prevSlide: () =>
+    set((state: any) => {
+      const pageIdx = state.pages.findIndex((p: any) => p.id === state.activePageId);
+      if (pageIdx > 0) {
+        const prevIdx = pageIdx - 1;
+        const prevPage = state.pages[prevIdx];
+        // Save current page state
+        const pages = [...state.pages];
+        pages[pageIdx] = { ...pages[pageIdx], elements: state.elements };
+        const cache = { ...state.pageStateCache };
+        cache[state.activePageId] = {
+          elements: state.elements,
+          selectedIds: state.selectedIds,
+          viewTransform: state.viewTransform,
+          history: state.history,
+          historyIndex: state.historyIndex,
+        };
+        const cached = cache[prevPage.id];
+        return {
+          pages,
+          activePageId: prevPage.id,
+          pageStateCache: cache,
+          elements: cached ? cached.elements : prevPage.elements,
+          selectedIds: [],
+          viewTransform: cached ? cached.viewTransform : { x: 0, y: 0, zoom: 1 },
+          history: cached ? cached.history : [prevPage.elements ? [...prevPage.elements] : []],
+          historyIndex: cached ? cached.historyIndex : 0,
+          presentationSlideIndex: prevIdx,
+        };
+      }
+      return state;
     }),
 });

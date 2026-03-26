@@ -41,6 +41,7 @@ export default function MenuBar() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const group = useAppStore((s) => s.group);
   const ungroup = useAppStore((s) => s.ungroup);
+  const startPresentation = useAppStore((s) => s.startPresentation);
 
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -166,9 +167,10 @@ export default function MenuBar() {
     {
       label: "View",
       items: [
+        { label: "Present", shortcut: "F5", action: () => { startPresentation(); closeSidebar(); } },
         { label: "Reset View", shortcut: "", action: () => { resetView(); closeSidebar(); } },
         { separator: true },
-        { label: `${showGrid ? "✓ " : ""}Toggle Grid`, shortcut: "", action: () => { toggleGrid(); closeSidebar(); } },
+        { label: `${showGrid ? "\u2713 " : ""}Toggle Grid`, shortcut: "", action: () => { toggleGrid(); closeSidebar(); } },
         { label: `Theme: ${theme === "dark" ? "Dark" : theme === "light" ? "Light" : "Paper"}`, shortcut: "", action: () => { toggleTheme(); closeSidebar(); } },
       ],
     },

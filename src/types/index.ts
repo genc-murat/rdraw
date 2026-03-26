@@ -199,6 +199,8 @@ export interface AppState {
   panelOpen: boolean;
   panelPosition: { x: number; y: number };
   theme: "dark" | "light" | "paper";
+  presentationMode: boolean;
+  presentationSlideIndex: number;
   pages: Page[];
   activePageId: string;
   pageStateCache: Record<string, PageStateCache>;
@@ -278,6 +280,10 @@ export interface AppActions {
   setSearchQuery: (query: string) => void;
   setActiveLibraryTab: (tab: "local" | "browse") => void;
   fetchRemoteLibraries: () => Promise<void>;
+  startPresentation: () => void;
+  exitPresentation: () => void;
+  nextSlide: () => void;
+  prevSlide: () => void;
 }
 
 // Library types

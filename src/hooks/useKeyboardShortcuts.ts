@@ -25,10 +25,14 @@ export function useKeyboardShortcuts() {
     group,
     ungroup,
     toggleLibraryPanel,
+    startPresentation,
+    presentationMode,
   } = useAppStore();
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (presentationMode) return;
+
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
         return;
@@ -105,6 +109,9 @@ export function useKeyboardShortcuts() {
             }
           }
         }
+      } else if (e.key === "F5") {
+        e.preventDefault();
+        startPresentation();
       } else if (e.key === "Escape") {
         e.preventDefault();
         const state = useAppStore.getState();
@@ -174,7 +181,7 @@ export function useKeyboardShortcuts() {
         bringToFront();
       }
     },
-    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage, group, ungroup, toggleLibraryPanel]
+    [undo, redo, copy, cut, paste, duplicate, selectAll, removeElements, selectedIds, setTool, bringToFront, sendToBack, resetView, createPage, group, ungroup, toggleLibraryPanel, startPresentation, presentationMode]
   );
 
   useEffect(() => {
