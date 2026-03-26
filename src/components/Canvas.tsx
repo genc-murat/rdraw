@@ -27,6 +27,7 @@ export default function Canvas() {
   const setShowMermaidInput = useAppStore((s) => s.setShowMermaidInput);
   const setShowC4LabelInput = useAppStore((s) => s.setShowC4LabelInput);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [laserPos, setLaserPos] = useState<{ clientX: number; clientY: number } | null>(null);
 
   const { tempElementRef, selectionBoxRef, guideLinesRef, drawDirtyRef } = useCanvasEvents(canvasRef);
 
@@ -103,19 +104,21 @@ export default function Canvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const cursors: Record<string, string> = {
-      select: "default",
-      hand: "grab",
-      rectangle: "crosshair",
-      "rounded-rectangle": "crosshair",
-      ellipse: "crosshair",
-      diamond: "crosshair",
-      star: "crosshair",
-      hexagon: "crosshair",
-      line: "crosshair",
-      arrow: "crosshair",
-      freehand: "crosshair",
-      text: "text",
+      const cursors: Record<string, string> = {
+        select: "default",
+        hand: "grab",
+        rectangle: "crosshair",
+        "rounded-rectangle": "crosshair",
+        ellipse: "crosshair",
+        diamond: "crosshair",
+        star: "crosshair",
+        hexagon: "crosshair",
+        line: "crosshair",
+        arrow: "crosshair",
+        freehand: "crosshair",
+        highlight: "crosshair",
+        laser: "none",
+        text: "text",
       note: "crosshair",
       callout: "crosshair",
       mermaid: "crosshair",
@@ -141,8 +144,15 @@ export default function Canvas() {
       const x = (e.clientX - rect.left - viewTransform.x) / viewTransform.zoom;
       const y = (e.clientY - rect.top - viewTransform.y) / viewTransform.zoom;
       setCursorPos({ x: Math.round(x), y: Math.round(y) });
+
+      // Track laser pointer position
+      if (activeTool === "laser") {
+        setLaserPos({ clientX: e.clientX, clientY: e.clientY });
+      } else if (laserPos) {
+        setLaserPos(null);
+      }
     },
-    [viewTransform]
+    [viewTransform, activeTool, laserPos]
   );
 
   const handleTextInputSubmit = (text: string) => {
@@ -330,7 +340,7 @@ export default function Canvas() {
       ref={containerRef}
       className="canvas-wrapper"
       onMouseMove={handleMouseMoveForReadout}
-      onMouseLeave={() => setCursorPos(null)}
+      onMouseLeave={() => { setCursorPos(null); setLaserPos(null); }}
       onDoubleClick={handleCanvasDoubleClick}
     >
       <canvas ref={canvasRef} />
@@ -379,6 +389,22 @@ export default function Canvas() {
           }}
           onCancel={() => setShowC4LabelInput(null)}
         />
+      )}
+
+      {activeTool === "laser" && laserPos && (
+        <div
+          className="laser-pointer"
+          style={{
+            position: "fixed",
+            left: laserPos.clientX - 12,
+            top: laserPos.clientY - 12,
+            pointerEvents: "none",
+            zIndex: 9999,
+          }}
+        >
+          <div className="laser-dot" />
+          <div className="laser-glow" />
+        </div>
       )}
 
       <Minimap />

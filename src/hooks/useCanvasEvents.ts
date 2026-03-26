@@ -107,6 +107,9 @@ export function useCanvasEvents(canvasRef: React.RefObject<HTMLCanvasElement | n
       const state = store.getState();
       const point = getCanvasPoint(e);
 
+      // Laser pointer: do nothing on click (no element creation)
+      if (state.activeTool === "laser") return;
+
       if (state.activeTool === "select") {
         for (const id of state.selectedIds) {
           const el = state.elements.find((e) => e.id === id);

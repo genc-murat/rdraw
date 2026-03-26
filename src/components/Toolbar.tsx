@@ -89,6 +89,15 @@ const HighlightIcon = () => (
   </svg>
 );
 
+const LaserIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="4" fill="currentColor" />
+    <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+    <path d="M5.6 5.6l2.8 2.8m7.2 7.2l2.8 2.8" />
+    <path d="M18.4 5.6l-2.8 2.8m-7.2 7.2l-2.8 2.8" />
+  </svg>
+);
+
 const NoteIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
@@ -118,6 +127,7 @@ const TOOLS: ToolDef[] = [
   { id: "arrow", label: "Arrow (A)", icon: "\u2192" },
   { id: "freehand", label: "Freehand (P)", icon: "\u270E" },
   { id: "highlight", label: "Highlight (G)", icon: <HighlightIcon /> },
+  { id: "laser", label: "Laser Pointer (O)", icon: <LaserIcon /> },
   { id: "text", label: "Text (T)", icon: "T" },
   { id: "note", label: "Note (N)", icon: <NoteIcon /> },
   { id: "callout", label: "Callout (C)", icon: <CalloutIcon /> },

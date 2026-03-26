@@ -150,6 +150,8 @@ export function useKeyboardShortcuts() {
         setTool("note");
       } else if ((e.key === "g" || e.key === "G") && !ctrl) {
         setTool("highlight");
+      } else if (e.key === "o" || e.key === "O") {
+        setTool("laser");
       } else if (e.key === "1") {
         setTool("c4-person");
       } else if (e.key === "2") {

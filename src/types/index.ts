@@ -22,7 +22,8 @@ export type Tool =
   | "c4-database"
   | "c4-system-boundary"
   | "c4-enterprise-boundary"
-  | "c4-relationship";
+  | "c4-relationship"
+  | "laser";
 
 export type FillStyle = "hachure" | "cross-hatch" | "solid" | "none" | "zigzag" | "dots" | "dashed" | "zigzag-line";
 export type StrokeStyle = "solid" | "dashed" | "dotted";
