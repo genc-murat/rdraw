@@ -383,7 +383,9 @@ export default function Canvas() {
           editId={showC4LabelInput.editId}
           onSubmit={(data) => {
             if (showC4LabelInput.editId) {
-              useAppStore.getState().updateElement(showC4LabelInput.editId, data as any);
+              const s = useAppStore.getState();
+              s.pushHistory();
+              s.updateElement(showC4LabelInput.editId, data as any);
             }
             setShowC4LabelInput(null);
           }}

@@ -109,6 +109,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setStrokeColor: (color) => {
     const state = get();
     set({ strokeColor: color });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { strokeColor: color });
     }
@@ -117,6 +118,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setFillColor: (color) => {
     const state = get();
     set({ fillColor: color });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { fillColor: color });
     }
@@ -129,6 +131,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
       updates.fillColor = "#ffffff";
     }
     set(updates);
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { fillStyle: style });
       if (style !== "none") {
@@ -143,6 +146,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setStrokeStyle: (style) => {
     const state = get();
     set({ strokeStyle: style });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { strokeStyle: style });
     }
@@ -151,6 +155,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setStrokeWidth: (width) => {
     const state = get();
     set({ strokeWidth: width });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { strokeWidth: width });
     }
@@ -159,6 +164,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setRoughness: (roughness) => {
     const state = get();
     set({ roughness });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { roughness });
     }
@@ -167,6 +173,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setOpacity: (opacity) => {
     const state = get();
     set({ opacity });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { opacity });
     }
@@ -175,6 +182,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setFontSize: (size) => {
     const state = get();
     set({ fontSize: size });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       const el = state.elements.find((e: DrawElement) => e.id === id);
       if (el && el.type === "text") {
@@ -204,6 +212,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setBorderRadius: (radius) => {
     const state = get();
     set({ borderRadius: radius });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       state.updateElement(id, { borderRadius: radius } as any);
     }
@@ -212,6 +221,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setEndArrowheadStyle: (style) => {
     const state = get();
     set({ endArrowheadStyle: style });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       const el = state.elements.find((e: DrawElement) => e.id === id);
       if (el && (el.type === "arrow" || el.type === "line" || el.type === "c4-relationship")) {
@@ -223,6 +233,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setStartArrowheadStyle: (style) => {
     const state = get();
     set({ startArrowheadStyle: style });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       const el = state.elements.find((e: DrawElement) => e.id === id);
       if (el && (el.type === "arrow" || el.type === "line" || el.type === "c4-relationship")) {
@@ -234,6 +245,7 @@ export const createToolSlice: StoreCreator<ToolState & ToolActions> = (set, get)
   setConnectorRouting: (routing) => {
     const state = get();
     set({ connectorRouting: routing });
+    if (state.selectedIds.length > 0) state.pushHistory();
     for (const id of state.selectedIds) {
       const el = state.elements.find((e: DrawElement) => e.id === id);
       if (el && (el.type === "arrow" || el.type === "line")) {

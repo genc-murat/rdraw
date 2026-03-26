@@ -76,7 +76,8 @@ export const createDrawingSlice: StoreCreator<DrawingState & DrawingActions> = (
       selectedIds: state.selectedIds.filter((sid: string) => sid !== id),
     })),
 
-  removeElements: (ids) =>
+  removeElements: (ids) => {
+    get().pushHistory();
     set((state: any) => {
       const idSet = new Set(ids);
       const elements = state.elements
@@ -100,7 +101,8 @@ export const createDrawingSlice: StoreCreator<DrawingState & DrawingActions> = (
           return el;
         });
       return { elements, selectedIds: [] };
-    }),
+    });
+  },
 
   selectElement: (id, multi) =>
     set((state: any) => {
@@ -167,30 +169,32 @@ export const createDrawingSlice: StoreCreator<DrawingState & DrawingActions> = (
       return { clipboard: JSON.parse(JSON.stringify(selected)) };
     }),
 
-  cut: () =>
-    set((state: any) => {
-      const selected = state.elements.filter((el: DrawElement) =>
-        state.selectedIds.includes(el.id)
-      );
-      return {
-        clipboard: JSON.parse(JSON.stringify(selected)),
-        elements: state.elements.filter(
-          (el: DrawElement) => !state.selectedIds.includes(el.id)
-        ),
-        selectedIds: [],
-      };
-    }),
+  cut: () => {
+    const state = get();
+    const selected = state.elements.filter((el: DrawElement) =>
+      state.selectedIds.includes(el.id)
+    );
+    state.pushHistory();
+    set({
+      clipboard: JSON.parse(JSON.stringify(selected)),
+      elements: state.elements.filter(
+        (el: DrawElement) => !state.selectedIds.includes(el.id)
+      ),
+      selectedIds: [],
+    });
+  },
 
-  paste: () =>
-    set((state: any) => {
-      if (state.clipboard.length === 0) return state;
-      const newElements = cloneElementsWithOffset(state.clipboard, 20);
-      return {
-        elements: [...state.elements, ...newElements],
-        selectedIds: newElements.map((el: DrawElement) => el.id),
-        clipboard: JSON.parse(JSON.stringify(newElements)),
-      };
-    }),
+  paste: () => {
+    const state = get();
+    if (state.clipboard.length === 0) return;
+    const newElements = cloneElementsWithOffset(state.clipboard, 20);
+    state.pushHistory();
+    set({
+      elements: [...state.elements, ...newElements],
+      selectedIds: newElements.map((el: DrawElement) => el.id),
+      clipboard: JSON.parse(JSON.stringify(newElements)),
+    });
+  },
 
   duplicate: () => {
     const state = get();
@@ -198,33 +202,40 @@ export const createDrawingSlice: StoreCreator<DrawingState & DrawingActions> = (
       state.selectedIds.includes(el.id)
     );
     const newElements = cloneElementsWithOffset(selected, 20);
+    state.pushHistory();
     set((s: any) => ({
       elements: [...s.elements, ...newElements],
       selectedIds: newElements.map((el: DrawElement) => el.id),
     }));
   },
 
-  bringToFront: () =>
-    set((state: any) => {
-      const selected = state.elements.filter((el: DrawElement) =>
-        state.selectedIds.includes(el.id)
+  bringToFront: () => {
+    const state = get();
+    state.pushHistory();
+    set((s: any) => {
+      const selected = s.elements.filter((el: DrawElement) =>
+        s.selectedIds.includes(el.id)
       );
-      const rest = state.elements.filter(
-        (el: DrawElement) => !state.selectedIds.includes(el.id)
+      const rest = s.elements.filter(
+        (el: DrawElement) => !s.selectedIds.includes(el.id)
       );
       return { elements: [...rest, ...selected] };
-    }),
+    });
+  },
 
-  sendToBack: () =>
-    set((state: any) => {
-      const selected = state.elements.filter((el: DrawElement) =>
-        state.selectedIds.includes(el.id)
+  sendToBack: () => {
+    const state = get();
+    state.pushHistory();
+    set((s: any) => {
+      const selected = s.elements.filter((el: DrawElement) =>
+        s.selectedIds.includes(el.id)
       );
-      const rest = state.elements.filter(
-        (el: DrawElement) => !state.selectedIds.includes(el.id)
+      const rest = s.elements.filter(
+        (el: DrawElement) => !s.selectedIds.includes(el.id)
       );
       return { elements: [...selected, ...rest] };
-    }),
+    });
+  },
 
   setElements: (elements) =>
     set((state: any) => ({
