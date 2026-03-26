@@ -50,6 +50,29 @@
   --coord-readout-bg: rgba(245, 245, 245, 0.85);
 }
 
+.paper-theme {
+  --canvas-bg: #f8f4e8;
+  --text-primary: #2c2c2c;
+  --text-secondary: #5a5a5a;
+  --text-muted: #8a8a7a;
+  --text-dim: #a0a090;
+  --surface-primary: #f0ece0;
+  --surface-secondary: #e6e0d4;
+  --surface-hover: #dcd6c8;
+  --surface-hover-strong: #d0c8b8;
+  --border-primary: #d4cebe;
+  --border-secondary: #c8c0ae;
+  --border-input: #b8b0a0;
+  --accent: #5a4a3a;
+  --accent-bg: #d8d0c0;
+  --accent-hover: #4a3a2a;
+  --overlay-bg: rgba(0, 0, 0, 0.12);
+  --shadow-color: rgba(90, 74, 58, 0.15);
+  --shadow-heavy: rgba(90, 74, 58, 0.25);
+  --minimap-bg: rgba(248, 244, 232, 0.92);
+  --coord-readout-bg: rgba(240, 236, 224, 0.88);
+}
+
 html, body, #root {
   width: 100%;
   height: 100%;

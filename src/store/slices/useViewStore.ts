@@ -15,7 +15,7 @@ export interface ViewState {
   toolbarPosition: { x: number; y: number };
   panelOpen: boolean;
   panelPosition: { x: number; y: number };
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "paper";
 }
 
 export interface ViewActions {
@@ -34,7 +34,7 @@ export interface ViewActions {
   setToolbarPosition: (pos: { x: number; y: number }) => void;
   togglePanel: () => void;
   setPanelPosition: (pos: { x: number; y: number }) => void;
-  setTheme: (theme: "dark" | "light") => void;
+  setTheme: (theme: "dark" | "light" | "paper") => void;
   toggleTheme: () => void;
 }
 
@@ -88,13 +88,15 @@ export const createViewSlice: StoreCreator<ViewState & ViewActions> = (set) => (
 
   setTheme: (theme) => {
     document.body.classList.toggle("light-theme", theme === "light");
+    document.body.classList.toggle("paper-theme", theme === "paper");
     set({ theme });
   },
 
   toggleTheme: () =>
     set((state: any) => {
-      const next = state.theme === "dark" ? "light" : "dark";
+      const next = state.theme === "dark" ? "light" : state.theme === "light" ? "paper" : "dark";
       document.body.classList.toggle("light-theme", next === "light");
+      document.body.classList.toggle("paper-theme", next === "paper");
       return { theme: next };
     }),
 });

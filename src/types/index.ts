@@ -198,7 +198,7 @@ export interface AppState {
   toolbarPosition: { x: number; y: number };
   panelOpen: boolean;
   panelPosition: { x: number; y: number };
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "paper";
   pages: Page[];
   activePageId: string;
   pageStateCache: Record<string, PageStateCache>;
@@ -257,7 +257,7 @@ export interface AppActions {
   setToolbarPosition: (pos: { x: number; y: number }) => void;
   togglePanel: () => void;
   setPanelPosition: (pos: { x: number; y: number }) => void;
-  setTheme: (theme: "dark" | "light") => void;
+  setTheme: (theme: "dark" | "light" | "paper") => void;
   toggleTheme: () => void;
   createPage: (name?: string) => void;
   deletePage: (id: string) => void;

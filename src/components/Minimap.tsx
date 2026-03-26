@@ -69,12 +69,12 @@ export default function Minimap() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
 
-      const isLight = theme === "light";
+      const isLight = theme === "light" || theme === "paper";
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // Background
-      ctx.fillStyle = isLight ? "rgba(245, 245, 245, 0.95)" : "rgba(30, 30, 30, 0.95)";
+      ctx.fillStyle = theme === "paper" ? "rgba(248, 244, 232, 0.95)" : isLight ? "rgba(245, 245, 245, 0.95)" : "rgba(30, 30, 30, 0.95)";
       ctx.fillRect(0, 0, MINIMAP_W, MINIMAP_H);
 
       // Border

@@ -55,7 +55,7 @@ export function renderElements(
   selectedIds: string[],
   viewTransform: { x: number; y: number; zoom: number },
   showGrid: boolean = true,
-  theme: "dark" | "light" = "dark",
+  theme: "dark" | "light" | "paper" = "dark",
   guideLines?: GuideLine[],
   showAnchors: boolean = false
 ): void {
@@ -159,7 +159,7 @@ function drawGrid(
   viewTransform: { x: number; y: number; zoom: number },
   width: number,
   height: number,
-  theme: "dark" | "light" = "dark"
+  theme: "dark" | "light" | "paper" = "dark"
 ): void {
   const gridSize = 20;
   const startX = Math.floor(-viewTransform.x / viewTransform.zoom / gridSize) * gridSize;
@@ -168,19 +168,32 @@ function drawGrid(
   const endY = startY + height / viewTransform.zoom + gridSize * 2;
 
   ctx.save();
-  ctx.strokeStyle = theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.03)";
-  ctx.lineWidth = 1 / viewTransform.zoom;
-  ctx.beginPath();
 
-  for (let x = startX; x < endX; x += gridSize) {
-    ctx.moveTo(x, startY);
-    ctx.lineTo(x, endY);
+  if (theme === "paper") {
+    ctx.fillStyle = "rgba(160, 150, 130, 0.35)";
+    for (let x = startX; x < endX; x += gridSize) {
+      for (let y = startY; y < endY; y += gridSize) {
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8 / viewTransform.zoom, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else {
+    ctx.strokeStyle = theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.03)";
+    ctx.lineWidth = 1 / viewTransform.zoom;
+    ctx.beginPath();
+
+    for (let x = startX; x < endX; x += gridSize) {
+      ctx.moveTo(x, startY);
+      ctx.lineTo(x, endY);
+    }
+    for (let y = startY; y < endY; y += gridSize) {
+      ctx.moveTo(startX, y);
+      ctx.lineTo(endX, y);
+    }
+    ctx.stroke();
   }
-  for (let y = startY; y < endY; y += gridSize) {
-    ctx.moveTo(startX, y);
-    ctx.lineTo(endX, y);
-  }
-  ctx.stroke();
+
   ctx.restore();
 }
 

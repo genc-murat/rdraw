@@ -169,7 +169,7 @@ export default function MenuBar() {
         { label: "Reset View", shortcut: "", action: () => { resetView(); closeSidebar(); } },
         { separator: true },
         { label: `${showGrid ? "✓ " : ""}Toggle Grid`, shortcut: "", action: () => { toggleGrid(); closeSidebar(); } },
-        { label: `Toggle Theme (${theme === "dark" ? "Dark" : "Light"})`, shortcut: "", action: () => { toggleTheme(); closeSidebar(); } },
+        { label: `Theme: ${theme === "dark" ? "Dark" : theme === "light" ? "Light" : "Paper"}`, shortcut: "", action: () => { toggleTheme(); closeSidebar(); } },
       ],
     },
     {
