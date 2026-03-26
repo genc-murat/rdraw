@@ -101,7 +101,7 @@ export function renderElements(
     ctx.globalAlpha = el.opacity;
 
     if (el.type === "rectangle" || el.type === "rounded-rectangle" || el.type === "ellipse" || el.type === "diamond" || el.type === "star" || el.type === "hexagon") {
-      renderShape(ctx, rc, el as ShapeElement);
+      renderShape(ctx, rc, el as ShapeElement, theme);
     } else if (el.type === "line" || el.type === "arrow") {
       renderLine(ctx, rc, el as LineElement);
     } else if (el.type === "freehand") {
@@ -113,7 +113,7 @@ export function renderElements(
     } else if (el.type === "callout") {
       renderCallout(ctx, rc, el as CalloutElement);
     } else if (el.type === "mermaid") {
-      renderMermaid(ctx, rc, el as MermaidElement);
+      renderMermaid(ctx, rc, el as MermaidElement, theme);
     } else if (el.type.startsWith("c4-") && el.type !== "c4-relationship") {
       renderC4Element(ctx, rc, el as C4Element);
     } else if (el.type === "c4-relationship") {
@@ -200,73 +200,90 @@ function drawGrid(
 function renderShape(
   ctx: CanvasRenderingContext2D,
   rc: ReturnType<typeof rough.canvas>,
-  el: ShapeElement
+  el: ShapeElement,
+  theme: string = "dark"
 ): void {
-  const options = {
-    seed: el.seed,
-    stroke: el.strokeColor,
-    strokeWidth: el.strokeWidth,
-    roughness: el.roughness,
-    fill: el.fillColor === "transparent" ? undefined : el.fillColor,
-    fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle,
-    strokeLineDash: el.strokeStyle === "solid" ? undefined : el.strokeStyle === "dashed" ? [8, 4] : [2, 4],
-    bowing: el.roughness * 0.5,
+  const hasFill = el.fillColor !== "transparent" && el.fillStyle && el.fillStyle !== "none";
+  const isPatternFill = hasFill && el.fillStyle !== "solid";
+  const visibleFill = isPatternFill ? getVisibleFillColor(el.fillColor, theme) : el.fillColor;
+
+  const strokeDash = el.strokeStyle === "solid" ? undefined : el.strokeStyle === "dashed" ? [8, 4] : [2, 4];
+
+  const drawShape = (opts: any) => {
+    if (el.type === "rectangle") {
+      rc.rectangle(el.x, el.y, el.width, el.height, opts);
+    } else if (el.type === "rounded-rectangle") {
+      const r = Math.min(el.borderRadius || 0, Math.abs(el.width) / 2, Math.abs(el.height) / 2);
+      if (r <= 0) {
+        rc.rectangle(el.x, el.y, el.width, el.height, opts);
+      } else {
+        const path = `M${el.x + r} ${el.y} L${el.x + el.width - r} ${el.y} Q${el.x + el.width} ${el.y} ${el.x + el.width} ${el.y + r} L${el.x + el.width} ${el.y + el.height - r} Q${el.x + el.width} ${el.y + el.height} ${el.x + el.width - r} ${el.y + el.height} L${el.x + r} ${el.y + el.height} Q${el.x} ${el.y + el.height} ${el.x} ${el.y + el.height - r} L${el.x} ${el.y + r} Q${el.x} ${el.y} ${el.x + r} ${el.y} Z`;
+        rc.path(path, opts);
+      }
+    } else if (el.type === "ellipse") {
+      rc.ellipse(el.x + el.width / 2, el.y + el.height / 2, Math.abs(el.width), Math.abs(el.height), opts);
+    } else if (el.type === "diamond") {
+      const cx = el.x + el.width / 2;
+      const cy = el.y + el.height / 2;
+      const hw = Math.abs(el.width) / 2;
+      const hh = Math.abs(el.height) / 2;
+      rc.polygon([[cx, cy - hh], [cx + hw, cy], [cx, cy + hh], [cx - hw, cy]], opts);
+    } else if (el.type === "star") {
+      const cx = el.x + el.width / 2;
+      const cy = el.y + el.height / 2;
+      const outerR = Math.min(Math.abs(el.width), Math.abs(el.height)) / 2;
+      const innerR = outerR * 0.4;
+      const points: [number, number][] = [];
+      for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        const r = i % 2 === 0 ? outerR : innerR;
+        points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+      }
+      rc.polygon(points, opts);
+    } else if (el.type === "hexagon") {
+      const cx = el.x + el.width / 2;
+      const cy = el.y + el.height / 2;
+      const r = Math.min(Math.abs(el.width), Math.abs(el.height)) / 2;
+      const points: [number, number][] = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+      }
+      rc.polygon(points, opts);
+    }
   };
 
-  if (el.type === "rectangle") {
-    rc.rectangle(el.x, el.y, el.width, el.height, options);
-  } else if (el.type === "rounded-rectangle") {
-    const r = Math.min(el.borderRadius || 0, Math.abs(el.width) / 2, Math.abs(el.height) / 2);
-    if (r <= 0) {
-      rc.rectangle(el.x, el.y, el.width, el.height, options);
-    } else {
-      const path = `M${el.x + r} ${el.y} L${el.x + el.width - r} ${el.y} Q${el.x + el.width} ${el.y} ${el.x + el.width} ${el.y + r} L${el.x + el.width} ${el.y + el.height - r} Q${el.x + el.width} ${el.y + el.height} ${el.x + el.width - r} ${el.y + el.height} L${el.x + r} ${el.y + el.height} Q${el.x} ${el.y + el.height} ${el.x} ${el.y + el.height - r} L${el.x} ${el.y + r} Q${el.x} ${el.y} ${el.x + r} ${el.y} Z`;
-      rc.path(path, options);
-    }
-  } else if (el.type === "ellipse") {
-    rc.ellipse(
-      el.x + el.width / 2,
-      el.y + el.height / 2,
-      Math.abs(el.width),
-      Math.abs(el.height),
-      options
-    );
-  } else if (el.type === "diamond") {
-    const cx = el.x + el.width / 2;
-    const cy = el.y + el.height / 2;
-    const hw = Math.abs(el.width) / 2;
-    const hh = Math.abs(el.height) / 2;
-    rc.polygon(
-      [
-        [cx, cy - hh],
-        [cx + hw, cy],
-        [cx, cy + hh],
-        [cx - hw, cy],
-      ],
-      options
-    );
-  } else if (el.type === "star") {
-    const cx = el.x + el.width / 2;
-    const cy = el.y + el.height / 2;
-    const outerR = Math.min(Math.abs(el.width), Math.abs(el.height)) / 2;
-    const innerR = outerR * 0.4;
-    const points: [number, number][] = [];
-    for (let i = 0; i < 10; i++) {
-      const angle = (i * Math.PI) / 5 - Math.PI / 2;
-      const r = i % 2 === 0 ? outerR : innerR;
-      points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
-    }
-    rc.polygon(points, options);
-  } else if (el.type === "hexagon") {
-    const cx = el.x + el.width / 2;
-    const cy = el.y + el.height / 2;
-    const r = Math.min(Math.abs(el.width), Math.abs(el.height)) / 2;
-    const points: [number, number][] = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3;
-      points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
-    }
-    rc.polygon(points, options);
+  if (isPatternFill && theme !== "dark") {
+    drawShape({
+      seed: el.seed,
+      stroke: "none",
+      strokeWidth: el.strokeWidth,
+      roughness: el.roughness,
+      fill: visibleFill,
+      fillStyle: el.fillStyle,
+      bowing: el.roughness * 0.5,
+    });
+    drawShape({
+      seed: el.seed,
+      stroke: el.strokeColor,
+      strokeWidth: el.strokeWidth,
+      roughness: el.roughness,
+      fill: undefined,
+      fillStyle: undefined,
+      strokeLineDash: strokeDash,
+      bowing: el.roughness * 0.5,
+    });
+  } else {
+    drawShape({
+      seed: el.seed,
+      stroke: el.strokeColor,
+      strokeWidth: el.strokeWidth,
+      roughness: el.roughness,
+      fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+      fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle,
+      strokeLineDash: strokeDash,
+      bowing: el.roughness * 0.5,
+    });
   }
 }
 
@@ -521,6 +538,19 @@ function darkenColor(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
+function getVisibleFillColor(fillColor: string, theme: string): string {
+  if (theme === "dark") return fillColor;
+  if (fillColor.length !== 7 || fillColor[0] !== "#") return fillColor;
+  const r = parseInt(fillColor.slice(1, 3), 16);
+  const g = parseInt(fillColor.slice(3, 5), 16);
+  const b = parseInt(fillColor.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  if (luminance > 0.55) {
+    return darkenColor(fillColor, 0.35);
+  }
+  return fillColor;
+}
+
 function renderCallout(
   ctx: CanvasRenderingContext2D,
   rc: ReturnType<typeof rough.canvas>,
@@ -595,20 +625,35 @@ function renderCallout(
 function renderMermaid(
   ctx: CanvasRenderingContext2D,
   rc: ReturnType<typeof rough.canvas>,
-  el: MermaidElement
+  el: MermaidElement,
+  theme: string = "dark"
 ): void {
   const origW = el.originalWidth || el.width;
   const origH = el.originalHeight || el.height;
   const sx = origW > 0 ? el.width / origW : 1;
   const sy = origH > 0 ? el.height / origH : 1;
 
-  const options = {
+  const mermaidHasFill = el.fillColor !== "transparent" && el.fillStyle && el.fillStyle !== "none";
+  const mermaidIsPatternFill = mermaidHasFill && el.fillStyle !== "solid";
+  const mermaidVisibleFill = mermaidIsPatternFill ? getVisibleFillColor(el.fillColor, theme) : el.fillColor;
+
+  const fillOptions = {
+    seed: el.seed,
+    stroke: "none" as const,
+    strokeWidth: el.strokeWidth,
+    roughness: el.roughness,
+    fill: mermaidIsPatternFill ? mermaidVisibleFill : (el.fillColor === "transparent" ? undefined : el.fillColor),
+    fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle as any,
+    bowing: el.roughness * 0.5,
+  };
+
+  const strokeOptions = {
     seed: el.seed,
     stroke: el.strokeColor,
     strokeWidth: el.strokeWidth,
     roughness: el.roughness,
-    fill: el.fillColor === "transparent" ? undefined : el.fillColor,
-    fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle as any,
+    fill: undefined,
+    fillStyle: undefined,
     bowing: el.roughness * 0.5,
   };
 
@@ -653,23 +698,29 @@ function renderMermaid(
       const cy = ny + nh / 2;
       const hw = nw / 2;
       const hh = nh / 2;
-      rc.polygon(
-        [
-          [cx, cy - hh],
-          [cx + hw, cy],
-          [cx, cy + hh],
-          [cx - hw, cy],
-        ],
-        options
-      );
+      if (mermaidIsPatternFill && theme !== "dark") {
+        rc.polygon([[cx, cy - hh], [cx + hw, cy], [cx, cy + hh], [cx - hw, cy]], fillOptions);
+        rc.polygon([[cx, cy - hh], [cx + hw, cy], [cx, cy + hh], [cx - hw, cy]], strokeOptions);
+      } else {
+        rc.polygon([[cx, cy - hh], [cx + hw, cy], [cx, cy + hh], [cx - hw, cy]], {
+          ...fillOptions,
+          stroke: el.strokeColor,
+          fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+          fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle as any,
+        });
+      }
     } else if (node.shape === "circle") {
-      rc.ellipse(
-        nx + nw / 2,
-        ny + nh / 2,
-        nw,
-        nh,
-        options
-      );
+      if (mermaidIsPatternFill && theme !== "dark") {
+        rc.ellipse(nx + nw / 2, ny + nh / 2, nw, nh, fillOptions);
+        rc.ellipse(nx + nw / 2, ny + nh / 2, nw, nh, strokeOptions);
+      } else {
+        rc.ellipse(nx + nw / 2, ny + nh / 2, nw, nh, {
+          ...fillOptions,
+          stroke: el.strokeColor,
+          fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+          fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle as any,
+        });
+      }
     } else if (node.shape === "state-start") {
       const cx = nx + nw / 2;
       const cy = ny + nh / 2;
@@ -697,10 +748,19 @@ function renderMermaid(
       ctx.fill();
       ctx.restore();
     } else {
-      rc.rectangle(nx, ny, nw, nh, {
-        ...options,
-        seed: el.seed + node.x + node.y,
-      });
+      const nodeOpts = { seed: el.seed + node.x + node.y };
+      if (mermaidIsPatternFill && theme !== "dark") {
+        rc.rectangle(nx, ny, nw, nh, { ...fillOptions, ...nodeOpts });
+        rc.rectangle(nx, ny, nw, nh, { ...strokeOptions, ...nodeOpts });
+      } else {
+        rc.rectangle(nx, ny, nw, nh, {
+          ...fillOptions,
+          ...nodeOpts,
+          stroke: el.strokeColor,
+          fill: el.fillColor === "transparent" ? undefined : el.fillColor,
+          fillStyle: el.fillStyle === "none" ? undefined : el.fillStyle as any,
+        });
+      }
     }
 
     if (node.label) {

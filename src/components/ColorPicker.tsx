@@ -13,7 +13,7 @@ export default function ColorPicker({
 }) {
   const [open, setOpen] = useState(false);
   const theme = useAppStore((s) => s.theme);
-  const transparentBg = theme === "light" ? "#ffffff" : "#1e1e1e";
+  const transparentBg = theme === "paper" ? "#f8f4e8" : theme === "light" ? "#ffffff" : "#1e1e1e";
 
   return (
     <div className="prop-row">
